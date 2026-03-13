@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Government Blockchain{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+<style>
+.sidebar-wrapper { display: none !important; width: 0 !important; }
+</style>
+{% include 'blockchain2/_header.html' %}
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+<div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+    <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; width: 100%;\">
+        <h2 style="text-align: center; margin-bottom: 30px;\">Government Blockchain Login</h2>
+        
+        <form id="loginForm" style="display: flex; flex-direction: column; gap: 15px;\">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;\">Username</label>
+                <input type="text" id="username" placeholder="Enter username" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;\">
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;\">Password</label>
+                <input type="password" id="password" placeholder="Enter password" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;\">
+            </div>
+            
+            <button type="button" onclick="login()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #04AA6D 0%, #059862 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;\">Login</button>
+        </form>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;\">
+            <p style=\"text-align: center; font-size: 12px; color: #666; margin-bottom: 10px;\"><strong>Demo Accounts:</strong></p>
+            <ul style="font-size: 12px; color: #666; margin: 0; padding-left: 20px;\">
+                <li>super_admin / superadmin123</li>
+                <li>admin_dof / admin123</li>
+                <li>user_deped / user123</li>
+                <li>user_doh / user123</li>
+            </ul>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center;\">
+            <a href="/blockchain2" style="color: #04AA6D; text-decoration: none; font-size: 14px;\">← Back to Home</a>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    fetch('/blockchain2/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (data.user.role === 'super_admin' || data.user.role === 'budget_admin') {
+                window.location.href = '/blockchain2/authorized-node/dashboard';
+            } else {
+                window.location.href = '/blockchain2/node/dashboard';
+            }
+        } else {
+            alert('Login failed: ' + data.message);
+        }
+    })
+    .catch(err => alert('Error: ' + err));
+}
+
+document.getElementById('loginForm').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') login();
+});
+</script>
+{% endblock %}

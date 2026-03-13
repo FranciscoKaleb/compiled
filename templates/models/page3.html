@@ -1,0 +1,68 @@
+{% extends "models/base.html" %}
+
+{% block title %}Image Classification - Model 3{% endblock %}
+
+{% block content %}
+<div class="models-content">
+    <h5>Page 3</h5>
+    <div class="models-card ">
+        <h1>Image Classification (ViT Base)</h1>
+        <p>Upload an image to classify.</p>
+
+        <div class="form-result-container">
+            <div class="form-column">
+                <form id="form3" enctype="multipart/form-data" aria-label="Image classification form">
+                    <label for="imageInput" class="sr-only">Upload image</label>
+                    <input id="imageInput" type="file" name="image" accept="image/*" required onchange="previewImage(event)">
+                    <button type="button" onclick="submitForm3()">Classify image</button>
+                </form>
+            </div>
+
+            <div class="result-column">
+                
+                    <img id="preview" class="preview-image " >
+                
+            </div>
+        </div>
+
+        <div class="result result-fullwidth" id="result3"></div>
+    </div>
+</div>
+
+<script>
+function previewImage(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('preview4');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+    }
+}
+
+function submitForm3() {
+    const form = document.getElementById('form3');
+    const formData = new FormData(form);
+
+    fetch('/models/objectdetection1/predict', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        let html = '<strong>Classification Results:</strong><ul>';
+        data.predictions.forEach(p => {
+            html += `<li>${p[1].toFixed(1)}% - ${p[0]}</li>`;
+        });
+        html += '</ul>';
+        document.getElementById('result3').innerHTML = html;
+    });
+}
+</script>
+{% endblock %}

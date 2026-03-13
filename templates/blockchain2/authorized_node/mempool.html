@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}View Mempool - Authorized Node{% endblock %}
+
+{% block sidebar %}
+{% include 'blockchain2/authorized_node/_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+{% include 'blockchain2/_header.html' %}
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Mempool</h1>
+    <span id="tx-count" style="background: #04AA6D; color: white; padding: 8px 15px; border-radius: 20px; font-weight: 600;\">0 transactions</span>
+</div>
+
+<div id="user-info" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+
+<div id="mempool-content" style="background: white; padding: 15px; border-radius: 8px; max-height: 600px; overflow-y: auto;"></div>
+
+<script>
+window.addEventListener('load', () => {
+    fetch('/blockchain2/get-user')
+        .then(r => r.json())
+        .then(data => {
+            if (data.user) {
+                document.getElementById('user-info').innerHTML = `
+                    <strong>${data.user.username}</strong> (${data.user.role}) - ${data.user.agency}
+                `;
+                loadMempool();
+                setInterval(loadMempool, 2000);
+            } else {
+                window.location.href = '/blockchain2/login';
+            }
+        });
+});
+
+function loadMempool() {
+    fetch('/blockchain2/view-mempool')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('tx-count').textContent = data.transactions.length + ' transaction' + (data.transactions.length !== 1 ? 's' : '');
+            const html = data.transactions.map(tx => `
+                <div style="padding: 15px; border-bottom: 1px solid #eee; background: #f9f9f9; border-radius: 6px; margin-bottom: 10px;">
+                    <strong style="color: #04AA6D;">${tx.txid}</strong><br>
+                    <small style="color: #666;">
+                        From: <code>${tx.sender}</code><br>
+                        To: <code>${tx.receiver}</code><br>
+                        Amount: <strong>${tx.amount}</strong> | 
+                        Status: <span style="background: #fff3cd; padding: 2px 8px; border-radius: 3px; font-size: 11px;">${tx.status}</span><br>
+                        Timestamp: ${new Date(tx.timestamp).toLocaleString()}
+                    </small>
+                </div>
+            `).join('');
+            document.getElementById('mempool-content').innerHTML = html || '<p style="color: #999;">Mempool is empty</p>';
+        });
+}
+
+function logout() {
+    fetch('/blockchain2/logout', {method: 'POST'})
+    .then(() => {
+        window.location.href = '/blockchain2';
+    });
+}
+</script>
+</div>
+{% endblock %}

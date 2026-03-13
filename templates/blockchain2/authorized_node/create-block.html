@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Create Block - Authorized Node{% endblock %}
+
+{% block sidebar %}
+{% include 'blockchain2/authorized_node/_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+{% include 'blockchain2/_header.html' %}
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Create Block</h1>
+</div>
+
+<div id="user-info" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+
+<div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px;">
+    <p style="color: #666; margin-bottom: 20px;">Click the button below to create a new block from all pending transactions in the mempool.</p>
+    
+    <div id="mempool-info" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #04AA6D;">
+        <strong>Pending Transactions:</strong>
+        <p id="tx-count" style="margin: 5px 0 0 0; font-size: 24px; color: #04AA6D;\">0</p>
+    </div>
+    
+    <button onclick="createBlock()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px;">Create Block</button>
+</div>
+
+<div id="result" style="display: none; margin-top: 20px; padding: 15px; background: #d9f9ed; border-left: 4px solid #04AA6D; border-radius: 8px;">
+    <strong style="color: #04AA6D;">✓ Block Created</strong>
+    <p id="result-text" style="margin: 5px 0 0 0; color: #666;"></p>
+</div>
+
+<div id="error" style="display: none; margin-top: 20px; padding: 15px; background: #ffe0e0; border-left: 4px solid #dc3545; border-radius: 8px;">
+    <strong style="color: #dc3545;">✗ Error</strong>
+    <p id="error-text" style="margin: 5px 0 0 0; color: #666;"></p>
+</div>
+
+<script>
+window.addEventListener('load', () => {
+    fetch('/blockchain2/get-user')
+        .then(r => r.json())
+        .then(data => {
+            if (data.user) {
+                document.getElementById('user-info').innerHTML = `
+                    <strong>${data.user.username}</strong> (${data.user.role}) - ${data.user.agency}
+                `;
+                loadMempoolCount();
+                setInterval(loadMempoolCount, 2000);
+            } else {
+                window.location.href = '/blockchain2/login';
+            }
+        });
+});
+
+function loadMempoolCount() {
+    fetch('/blockchain2/view-mempool')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('tx-count').textContent = data.transactions.length;
+        });
+}
+
+function createBlock() {
+    fetch('/blockchain2/create-block', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('result-text').textContent = `Block created with ${data.block.tx_count} transactions`;
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            loadMempoolCount();
+            setTimeout(() => {
+                document.getElementById('result').style.display = 'none';
+            }, 3000);
+        } else {
+            document.getElementById('error-text').textContent = data.message;
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+        }
+    });
+}
+</script>
+</div>
+{% endblock %}

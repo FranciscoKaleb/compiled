@@ -1,0 +1,155 @@
+{% extends "tools/base.html" %}
+
+{% block title %}Reduce Quality - Python Tools{% endblock %}
+
+{% block content %}
+<div class="tools-content">
+    <div class="tools-card">
+        <h1>Reduce Image Quality</h1>
+        <p>Upload an image to reduce its quality and size.</p>
+
+        <form id="uploadForm">
+    <div id="uploadZone">
+        <input type="file" id="fileInput" name="file" accept="image/*">
+        <label for="fileInput" class="upload-btn">Upload Image</label>
+    </div>
+</form>
+
+<div id="controlSection" style="display:none;">
+    <h3>Preview</h3>
+    <img id="preview" src="" alt="Preview">
+    <br>
+    <label for="qualitySlider">Quality: <span id="qualityValue">50</span>%</label>
+    <input type="range" id="qualitySlider" min="10" max="100" value="50">
+    <br>
+    <button id="reduceBtn">Reduce Quality</button>
+</div>
+
+<div id="downloadSection" style="display:none;">
+    <button id="downloadBtn">Download</button>
+</div>
+
+<style>
+#uploadZone {
+    border: 2px dashed #04AA6D;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    background-color: #f9f9f9;
+}
+
+#fileInput {
+    display: none;
+}
+
+.upload-btn {
+    display: inline-block;
+    background-color: #04AA6D;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.upload-btn:hover {
+    background-color: #059862;
+}
+
+#preview {
+    max-width: 100%;
+    max-height: 500px;
+    margin: 15px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#qualitySlider {
+    width: 100%;
+    margin: 10px 0;
+}
+</style>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const controlSection = document.getElementById('controlSection');
+const preview = document.getElementById('preview');
+const qualitySlider = document.getElementById('qualitySlider');
+const qualityValue = document.getElementById('qualityValue');
+const reduceBtn = document.getElementById('reduceBtn');
+const downloadSection = document.getElementById('downloadSection');
+const downloadBtn = document.getElementById('downloadBtn');
+let currentCounter = null;
+let currentExt = null;
+
+qualitySlider.addEventListener('input', () => {
+    qualityValue.textContent = qualitySlider.value;
+});
+
+fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/tools/tool3/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            currentCounter = data.counter;
+            currentExt = data.ext;
+            preview.src = URL.createObjectURL(file);
+            controlSection.style.display = 'block';
+            downloadSection.style.display = 'none';
+        } else {
+            alert(data.error || 'Error uploading image');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+reduceBtn.addEventListener('click', async () => {
+    reduceBtn.disabled = true;
+    reduceBtn.textContent = 'Processing...';
+    
+    const percentage = qualitySlider.value;
+    
+    try {
+        const response = await fetch(`/tools/tool3/reduce/${currentCounter}/${currentExt}/${percentage}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            preview.src = `/tools/tool3/preview/${currentCounter}?t=${Date.now()}`;
+            reduceBtn.style.display = 'none';
+            qualitySlider.disabled = true;
+            downloadSection.style.display = 'block';
+        } else {
+            alert('Error reducing quality');
+            reduceBtn.disabled = false;
+            reduceBtn.textContent = 'Reduce Quality';
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+        reduceBtn.disabled = false;
+        reduceBtn.textContent = 'Reduce Quality';
+    }
+});
+
+downloadBtn.addEventListener('click', () => {
+    window.location.href = `/tools/tool3/download/${currentCounter}`;
+});
+</script>
+    </div>
+</div>
+{% endblock %}

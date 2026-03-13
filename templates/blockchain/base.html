@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block sidebar %}
+<div class="sidebar">
+    <h3>Blockchain</h3>
+    <a href="/blockchain" class="{% if active_page == 'blockchain' %}active{% endif %}">Add Transaction</a>
+    <a href="/blockchain/view-chain" class="{% if active_page == 'view_chain' %}active{% endif %}">View Blockchain</a>
+</div>
+{% endblock %}

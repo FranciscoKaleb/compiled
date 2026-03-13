@@ -1,0 +1,311 @@
+/* Models CSS - Centralized styling for all model pages */
+
+/* Content Wrapper */
+.models-content {
+    padding: 30px;
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Card container */
+.models-card {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    padding: 28px;
+    margin-top: 18px;
+}
+
+.models-content h1 {
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: #111827;
+}
+
+.models-content h5 {
+    margin-bottom: 16px;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.models-content p {
+    color: #374151;
+    margin-bottom: 20px;
+}
+
+/* Form and Input Styles */
+.models-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.models-content textarea {
+    padding: 14px;
+    font-size: 15px;
+    border: 1px solid rgba(15, 23, 42, 0.2);
+    border-radius: 10px;
+    font-family: inherit;
+    min-height: 140px;
+    resize: vertical;
+    width: 100%;
+    background: #fafbfc;
+}
+
+.models-content input[type="file"],
+.models-content input[type="text"] {
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.models-content label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Button Styles */
+.models-content button {
+    padding: 12px 18px;
+    margin: 12px 0 0 0;
+    font-size: 15px;
+    cursor: pointer;
+    background-color: #0b74e6;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    width: 160px;
+}
+
+.models-content button:hover {
+    background-color: #065ec0;
+    transform: translateY(-1px);
+}
+
+.models-content button:hover {
+    background-color: #038a57;
+}
+
+.models-content button:active {
+    background-color: #026d45;
+}
+
+/* Result Styles */
+.models-content .result {
+    margin-top: 24px;
+    padding: 18px;
+    border-radius: 12px;
+    background-color: #f9fafb;
+    border-left: 4px solid #0b74e6;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.models-content .result.positive {
+    background-color: #d4edda;
+    border-left-color: #28a745;
+}
+
+.models-content .result.negative {
+    background-color: #f8d7da;
+    border-left-color: #dc3545;
+}
+
+.models-content .result.neutral {
+    background-color: #e2e3e5;
+    border-left-color: #6c757d;
+}
+
+.models-content .result h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.models-content .result ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.models-content .result li {
+    margin: 8px 0;
+}
+
+.models-content .prediction {
+    font-weight: bold;
+    color: #04AA6D;
+    font-size: 16px;
+}
+
+.models-content .text-result {
+    background-color: white;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 10px;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Image Preview Styles */
+.models-content img[id="preview"] {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    margin-top: 15px;
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+
+.models-content img[id="preview1"],
+.models-content img[id="preview2"] {
+    max-width: 300px;
+    margin-top: 10px;
+    border-radius: 8px;
+}
+
+.models-content img[id="capturedImage"] {
+    max-width: 400px;
+    border: 2px solid #04AA6D;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.models-content img.result-image {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    margin-top: 15px;
+    border-radius: 8px;
+}
+
+/* Video and Camera Styles */
+.models-content .video-container {
+    margin: 20px 0;
+    text-align: center;
+    display: none;
+}
+
+.models-content .video-container img {
+    border: 2px solid #333;
+    border-radius: 8px;
+    max-width: 100%;
+    height: auto;
+}
+
+.models-content video {
+    border: 2px solid #04AA6D;
+    border-radius: 8px;
+    background-color: #000;
+    display: none;
+}
+
+.models-content canvas {
+    display: none;
+}
+
+/* Form Container (used by image model pages) */
+.models-content .form-result-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.models-content .form-column,
+.models-content .result-column {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+}
+
+
+.models-content .result-column {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.models-content .preview-image {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #e5e7eb;
+    display: block;
+}
+
+
+.models-content #preview {
+    width: 100%;
+    height: 300px;
+    border-radius: 12px;
+    background: #e7e7e7f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.models-content .result-fullwidth {
+    grid-column: 1 / span 2;
+    margin-top: 28px;
+    border-left: none;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 18px;
+}
+
+@media (max-width: 920px) {
+    .models-content .form-result-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Result display areas */
+.models-content #registerResult,
+.models-content #loginResult,
+.models-content #result3,
+.models-content #result4,
+.models-content #result5,
+.models-content #result6,
+.models-content #result7,
+.models-content #result8,
+.models-content #result9 {
+    margin-top: 20px;
+}
+
+/* Heading Styles */
+.models-content h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.models-content h2 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.models-content h3 {
+    color: #333;
+    margin-top: 15px;
+}
+
+.models-content h5 {
+    color: #666;
+    font-size: 14px;
+    margin: 0 0 10px 0;
+}
+
+.models-content p {
+    color: #666;
+    line-height: 1.5;
+}

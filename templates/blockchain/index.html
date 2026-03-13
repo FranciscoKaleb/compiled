@@ -1,0 +1,146 @@
+{% extends "blockchain/base.html" %}
+
+{% block title %}Add Transaction - Blockchain{% endblock %}
+
+{% block content %}
+<div class="blockchain-content">
+    <div class="blockchain-card">
+        <h1>Add Transaction</h1>
+        <p>Create a new transaction and add it to the mempool</p>
+
+        <form id="transactionForm">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+            <label>Sender Address</label>
+            <input type="text" name="sender" placeholder="e.g., Alice" required>
+        </div>
+        <div>
+            <label>Receiver Address</label>
+            <input type="text" name="receiver" placeholder="e.g., Bob" required>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+            <label>Amount</label>
+            <input type="number" name="amount" placeholder="0.00" step="0.01" required>
+        </div>
+        <div>
+            <label>Transaction Type</label>
+            <select name="tx_type" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                <option value="transfer">Transfer</option>
+                <option value="contract">Contract Call</option>
+                <option value="mint">Token Mint</option>
+            </select>
+        </div>
+    </div>
+    
+    <div>
+        <label>Memo (Optional)</label>
+        <textarea name="memo" placeholder="Add a message..." style="height: 80px;"></textarea>
+    </div>
+    
+    <button type="submit">Add to Mempool</button>
+</form>
+
+<div id="transactionResult" style="display: none; margin-top: 20px;">
+    <div class="result">
+        <strong>✓ Transaction Added</strong>
+        <p>TX ID: <code id="txId" style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px;"></code></p>
+    </div>
+</div>
+
+<h2 style="margin-top: 40px;">Mempool</h2>
+<div id="mempool" style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden;">
+    <div style="padding: 20px; text-align: center; color: #999;">Loading mempool...</div>
+</div>
+
+<button id="createBlockBtn" style="margin-top: 20px; background: linear-gradient(135deg, #059862 0%, #047a4f 100%);">Create Block</button>
+
+<script>
+const form = document.getElementById('transactionForm');
+const result = document.getElementById('transactionResult');
+const txId = document.getElementById('txId');
+const mempool = document.getElementById('mempool');
+const createBlockBtn = document.getElementById('createBlockBtn');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const data = {
+        sender: formData.get('sender'),
+        receiver: formData.get('receiver'),
+        amount: formData.get('amount'),
+        tx_type: formData.get('tx_type'),
+        memo: formData.get('memo')
+    };
+    
+    try {
+        const response = await fetch('/blockchain/add-transaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const res = await response.json();
+        if (res.success) {
+            txId.textContent = res.tx_id;
+            result.style.display = 'block';
+            form.reset();
+            loadMempool();
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+async function loadMempool() {
+    try {
+        const response = await fetch('/blockchain/mempool');
+        const transactions = await response.json();
+        
+        if (transactions.length === 0) {
+            mempool.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Mempool is empty</div>';
+            return;
+        }
+        
+        let html = '<div style="padding: 20px;">';
+        transactions.forEach((tx, idx) => {
+            html += `
+                <div style="padding: 15px; border-bottom: 1px solid #e0e0e0; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                    <div><strong style="color: #04AA6D;">TX ${idx + 1}</strong><br><small>${tx.tx_id}</small></div>
+                    <div><strong>${tx.sender}</strong> → <strong>${tx.receiver}</strong></div>
+                    <div><strong>${tx.amount}</strong> coins</div>
+                    <div><small>${tx.timestamp}</small></div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        mempool.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading mempool:', error);
+    }
+}
+
+createBlockBtn.addEventListener('click', async () => {
+    try {
+        const response = await fetch('/blockchain/create-block', {method: 'POST'});
+        const res = await response.json();
+        if (res.success) {
+            alert('Block created with ' + res.block.transactions.length + ' transactions');
+            loadMempool();
+        } else {
+            alert(res.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+loadMempool();
+setInterval(loadMempool, 2000);
+</script>
+    </div>
+</div>
+{% endblock %}

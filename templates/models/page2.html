@@ -1,0 +1,25 @@
+{% extends "models/base.html" %}
+
+{% block title %}Sentiment Analysis - Model 2{% endblock %}
+
+{% block content %}
+<div class="models-content">
+    <h5>Page 2</h5>
+    <div class="models-card">
+        <h1>Sentiment Analysis 2</h1>
+        <p>This model classifies text as Positive, Negative, or Neutral.</p>
+
+        <form method="POST" action="/models/sentimentanalysis2/predict" aria-label="Sentiment analysis form">
+            <label for="textInput" class="sr-only">Text to analyze</label>
+            <textarea id="textInput" name="text" placeholder="Enter text here..." required>{{ text }}</textarea>
+            <button type="submit">Analyze text</button>
+        </form>
+
+        {% if sentiment %}
+        <div class="result {{ sentiment.lower() }}" role="status">
+            <strong>Result:</strong> {{ sentiment }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

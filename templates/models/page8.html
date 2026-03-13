@@ -1,0 +1,68 @@
+{% extends "models/base.html" %}
+
+{% block title %}Model 8 - Face Detection{% endblock %}
+
+{% block content %}
+<div class="models-content">
+    <h5>Page 8</h5>
+    <div class="models-card">
+        <h2>Face Detection</h2>
+        <p>Upload an image to detect faces.</p>
+
+        <div class="form-result-container">
+            <div class="form-column">
+                <form id="form8" enctype="multipart/form-data" aria-label="Face Detection form">
+                    <label for="imageInput8" class="sr-only">Upload image</label>
+                    <input id="imageInput8" type="file" name="image" accept="image/*" required onchange="previewImage8(event)">
+                    <button type="button" onclick="submitForm8()">Detect Faces</button>
+                </form>
+            </div>
+
+            <div class="result-column">
+                
+                    <img id="preview8" class="preview-image" >
+                
+            </div>
+        </div>
+
+        <div class="result result-fullwidth" id="result8"></div>
+    </div>
+</div>
+
+<script>
+function previewImage8(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('preview8');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+    }
+}
+
+function submitForm8() {
+    const form = document.getElementById('form8');
+    const formData = new FormData(form);
+
+    fetch('/models/objectdetection6/predict', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        let html = `<h3>Detection Result:</h3><p class="prediction">${data.message}</p>`;
+        if (data.image_data) {
+            // Replace preview with result image
+            document.getElementById('preview8').src = `data:image/png;base64,${data.image_data}`;
+        }
+        document.getElementById('result8').innerHTML = html;
+    });
+}
+</script>
+{% endblock %}

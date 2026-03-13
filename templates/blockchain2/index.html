@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Government Blockchain Ledger{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+<style>
+.sidebar-wrapper { display: none !important; width: 0 !important; }
+</style>
+{% include 'blockchain2/_header.html' %}
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+    <div>
+        <h2 style="margin: 0; color: #333;">Public Ledger View</h2>
+        <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Real-time blockchain and transaction monitoring</p>
+    </div>
+    <a href="/blockchain2/login" style="background: linear-gradient(135deg, #04AA6D 0%, #059862 100%); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 15px rgba(4,170,109,0.3);">Login</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <div style="background: linear-gradient(135deg, #04AA6D 0%, #059862 100%); color: white; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px;">⛓</div>
+            <h3 style="margin: 0; color: #333;">Blockchain</h3>
+        </div>
+        <div id="public-blockchain" style="background: #f9f9f9; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; min-height: 200px;"></div>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <div style="background: linear-gradient(135deg, #FF6B6B 0%, #EE5A52 100%); color: white; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px;">⏳</div>
+            <h3 style="margin: 0; color: #333;">Mempool (Pending Transactions)</h3>
+        </div>
+        <div id="public-mempool" style="background: #f9f9f9; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; min-height: 200px;"></div>
+    </div>
+</div>
+
+</div>
+
+<script>
+window.addEventListener('load', () => {
+    loadPublicViews();
+    setInterval(loadPublicViews, 3000);
+});
+
+function loadPublicViews() {
+    fetch('/blockchain2/view-blockchain')
+        .then(r => r.json())
+        .then(data => {
+            const html = data.blocks.map(b => `
+                <div style="padding: 12px; border-bottom: 1px solid #e0e0e0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                    <div>
+                        <strong style="color: #04AA6D;">Block #${b.height}</strong><br>
+                        <small style="color: #999;">Hash: ${b.hash.substring(0, 12)}...</small>
+                    </div>
+                    <div>
+                        <small style="color: #666;"><strong>${b.tx_count}</strong> tx | Proposer: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">${b.proposer.substring(0, 8)}...</code></small>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('public-blockchain').innerHTML = html || '<p style="color: #999; text-align: center; padding: 20px;">No blocks yet</p>';
+        })
+        .catch(err => {
+            document.getElementById('public-blockchain').innerHTML = '<p style="color: #c00; text-align: center; padding: 20px;">Error loading blockchain</p>';
+        });
+    
+    fetch('/blockchain2/view-mempool')
+        .then(r => r.json())
+        .then(data => {
+            const html = data.transactions.map(tx => `
+                <div style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <strong style="color: #FF6B6B;">${tx.txid}</strong>
+                        <span style="background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;">PENDING</span>
+                    </div>
+                    <small style="color: #666;">
+                        <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">${tx.sender.substring(0, 8)}...</code> → 
+                        <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">${tx.receiver.substring(0, 8)}...</code>
+                        | <strong>${tx.amount}</strong> units
+                    </small>
+                </div>
+            `).join('');
+            document.getElementById('public-mempool').innerHTML = html || '<p style="color: #999; text-align: center; padding: 20px;">Mempool is empty</p>';
+        })
+        .catch(err => {
+            document.getElementById('public-mempool').innerHTML = '<p style="color: #c00; text-align: center; padding: 20px;">Error loading mempool</p>';
+        });
+}
+</script>
+{% endblock %}

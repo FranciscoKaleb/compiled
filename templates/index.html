@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Compiled{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 60px 20px;">
+    <h1 style="font-size: 48px; margin-bottom: 20px;">Welcome to Compiled</h1>
+    <p style="font-size: 18px; color: #666; margin-bottom: 40px;">
+        A unified platform for ML Models and Python Tools
+    </p>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; max-width: 800px; margin: 0 auto;">
+        <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.08)'">
+            <h2 style="color: #04AA6D; margin-bottom: 15px;">🤖 Models</h2>
+            <p style="color: #666; margin-bottom: 20px;">Explore advanced ML models for sentiment analysis, object detection, and more.</p>
+            <a href="/models/sentimentanalysis1" style="display: inline-block; background: linear-gradient(135deg, #04AA6D 0%, #059862 100%); color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">Explore Models</a>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.08)'">
+            <h2 style="color: #04AA6D; margin-bottom: 15px;">🛠️ Tools</h2>
+            <p style="color: #666; margin-bottom: 20px;">Powerful utilities for PDF processing, image editing, and file management.</p>
+            <a href="/tools/tool1" style="display: inline-block; background: linear-gradient(135deg, #04AA6D 0%, #059862 100%); color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">Explore Tools</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

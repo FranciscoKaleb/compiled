@@ -1,0 +1,31 @@
+1. add a load model button on each model page
+2. try to integrate models, tools, blockchain in one flask app
+3. add a model to complete a phrase/word/s
+4. audio to text model
+5. create a ledger blockchain in flask
+6. TOOLS - 
+7. remove text from picture
+
+
+
+
+
+
+
+
+blockchain2
+
+ACCOUNT STATE:
+1. state should update not append. 
+2. there should be fixed account state and a user account with authority to add account
+
+TRANSACTIONS:
+complete the info
+sanitize the process
+validate transactions
+
+
+improve UI
+
+
+

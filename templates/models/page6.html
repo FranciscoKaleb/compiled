@@ -1,0 +1,64 @@
+{% extends "models/base.html" %}
+
+{% block title %}Model 6 - Nougat OCR{% endblock %}
+
+{% block content %}
+<div class="models-content">
+    <h5>Page 6</h5>
+    <div class="models-card">
+        <h2>Nougat OCR</h2>
+        <p>Extract text from document images using Nougat OCR model.</p>
+
+        <div class="form-result-container">
+            <div class="form-column">
+                <form id="form6" enctype="multipart/form-data" aria-label="Nougat OCR form">
+                    <label for="imageInput6" class="sr-only">Upload image</label>
+                    <input id="imageInput6" type="file" name="image" accept="image/*" required onchange="previewImage6(event)">
+                    <button type="button" onclick="submitForm6()">Extract Text</button>
+                </form>
+            </div>
+
+            <div class="result-column">
+               
+                    <img id="preview6" class="preview-image">
+                
+            </div>
+        </div>
+
+        <div class="result result-fullwidth" id="result6"></div>
+    </div>
+</div>
+
+<script>
+function previewImage6(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('preview6');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+    }
+}
+
+function submitForm6() {
+    const form = document.getElementById('form6');
+    const formData = new FormData(form);
+
+    fetch('/models/objectdetection4/predict', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        let html = '<h3>Extracted Text:</h3><div class="text-result">' + data.text + '</div>';
+        document.getElementById('result6').innerHTML = html;
+    });
+}
+</script>
+{% endblock %}

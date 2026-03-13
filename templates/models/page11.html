@@ -1,0 +1,131 @@
+{% extends "models/base.html" %}
+
+{% block title %}Model 11 - Face Attendance{% endblock %}
+
+{% block content %}
+
+<div class="models-content">
+    <h5>Page 11</h5>
+    <div class="models-card">
+        <h2>Face Attendance System</h2>
+
+        <div style="margin-bottom: 32px;">
+            <h3>Register New User</h3>
+            <input type="text" id="userName" placeholder="Enter name">
+            <button onclick="openCamera('register')">Open Camera (Register)</button>
+            <button onclick="captureImage('register')" id="captureRegister">Capture</button>
+            <button onclick="submitRegister()" id="submitRegister">Submit Registration</button>
+            <div id="registerResult"></div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3>Simulate Login</h3>
+            <button onclick="openCamera('login')">Open Camera (Login)</button>
+            <button onclick="captureImage('login')" id="captureLogin">Capture</button>
+            <button onclick="submitLogin()" id="submitLogin">Submit Login</button>
+            <div id="loginResult"></div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <video id="video" width="400" height="300" autoplay></video>
+            <canvas id="canvas" width="400" height="300"></canvas>
+            <img id="capturedImage">
+        </div>
+
+        <script>
+        
+        </script>
+    </div>
+</div>
+
+<script>
+let stream = null;
+let currentMode = null;
+let capturedImageData = null;
+
+async function openCamera(mode) {
+    currentMode = mode;
+    const video = document.getElementById('video');
+    
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.style.display = 'block';
+        
+        if (mode === 'register') {
+            document.getElementById('captureRegister').style.display = 'inline-block';
+        } else {
+            document.getElementById('captureLogin').style.display = 'inline-block';
+        }
+    } catch (err) {
+        alert('Error accessing camera: ' + err.message);
+    }
+}
+
+function captureImage(mode) {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const capturedImage = document.getElementById('capturedImage');
+    
+    ctx.drawImage(video, 0, 0, 400, 300);
+    capturedImageData = canvas.toDataURL('image/png');
+    
+    capturedImage.src = capturedImageData;
+    capturedImage.style.display = 'block';
+    video.style.display = 'none';
+    
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+    
+    if (mode === 'register') {
+        document.getElementById('captureRegister').style.display = 'none';
+        document.getElementById('submitRegister').style.display = 'inline-block';
+    } else {
+        document.getElementById('captureLogin').style.display = 'none';
+        document.getElementById('submitLogin').style.display = 'inline-block';
+    }
+}
+
+async function submitRegister() {
+    const name = document.getElementById('userName').value;
+    if (!name) {
+        alert('Please enter a name');
+        return;
+    }
+    
+    const response = await fetch('/register11', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, image: capturedImageData })
+    });
+    
+    const result = await response.json();
+    document.getElementById('registerResult').innerHTML = `<p class="prediction">${result.message}</p>`;
+    
+    document.getElementById('capturedImage').style.display = 'none';
+    document.getElementById('submitRegister').style.display = 'none';
+    document.getElementById('userName').value = '';
+    capturedImageData = null;
+}
+
+async function submitLogin() {
+    const response = await fetch('/login11', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: capturedImageData })
+    });
+    
+    const result = await response.json();
+    document.getElementById('loginResult').innerHTML = `<p class="prediction">${result.message}</p>`;
+    
+    document.getElementById('capturedImage').style.display = 'none';
+    document.getElementById('submitLogin').style.display = 'none';
+    capturedImageData = null;
+}
+</script>
+</div>
+
+
+{% endblock %}

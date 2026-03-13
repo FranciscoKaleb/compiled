@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Insert Budget - Authorized Node{% endblock %}
+
+{% block sidebar %}
+{% include 'blockchain2/authorized_node/_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+{% include 'blockchain2/_header.html' %}
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Insert Budget</h1>
+</div>
+
+<div id="user-info" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+
+<div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px;">
+    <form id="budgetForm" style="display: flex; flex-direction: column; gap: 15px;">
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Agency</label>
+            <input type="text" id="agency" placeholder="Enter agency name" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+        </div>
+        
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Amount</label>
+            <input type="number" id="amount" placeholder="Enter amount" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+        </div>
+        
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Description</label>
+            <textarea id="description" placeholder="Enter description" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; min-height: 100px; resize: vertical;"></textarea>
+        </div>
+        
+        <button type="button" onclick="addBudget()" style="padding: 12px; background: linear-gradient(135deg, #04AA6D 0%, #059862 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Add Budget to Mempool</button>
+    </form>
+</div>
+
+<div id="result" style="display: none; margin-top: 20px; padding: 15px; background: #d9f9ed; border-left: 4px solid #04AA6D; border-radius: 8px;">
+    <strong style="color: #04AA6D;">✓ Budget Added</strong>
+    <p id="result-text" style="margin: 5px 0 0 0; color: #666;"></p>
+</div>
+
+<script>
+window.addEventListener('load', () => {
+    fetch('/blockchain2/get-user')
+        .then(r => r.json())
+        .then(data => {
+            if (data.user) {
+                document.getElementById('user-info').innerHTML = `
+                    <strong>${data.user.username}</strong> (${data.user.role}) - ${data.user.agency}
+                `;
+            } else {
+                window.location.href = '/blockchain2/login';
+            }
+        });
+});
+
+function addBudget() {
+    const agency = document.getElementById('agency').value;
+    const amount = document.getElementById('amount').value;
+    const description = document.getElementById('description').value;
+    
+    if (!agency || !amount) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    fetch('/blockchain2/add-budget', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({agency, amount: parseInt(amount), description})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('result-text').textContent = `Budget of ${amount} added to ${agency}`;
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('budgetForm').reset();
+            setTimeout(() => {
+                document.getElementById('result').style.display = 'none';
+            }, 3000);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+</script>
+</div>
+{% endblock %}
