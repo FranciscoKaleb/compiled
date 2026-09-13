@@ -1,0 +1,32 @@
+{% extends "models/_page.html" %}
+
+{% block model_content %}
+<div class="card">
+    <div class="alert alert--warn" style="margin-bottom: var(--space-4)">
+        This stream comes from the camera attached to the machine running this
+        app, not from your browser.
+    </div>
+
+    <div class="btn-row">
+        <button type="button" class="btn" id="startStream">Start stream</button>
+        <button type="button" class="btn btn--secondary" id="stopStream" disabled>
+            Stop stream
+        </button>
+    </div>
+
+    <div class="preview-frame" id="streamFrame" style="margin-top: var(--space-4)">
+        <p class="preview-frame__empty">The stream appears here.</p>
+    </div>
+
+    <div id="result" class="result" role="status" aria-live="polite"
+         style="margin-top: var(--space-4)"></div>
+</div>
+{% endblock %}
+
+{% block model_scripts %}
+<script>
+    window.STREAM_URL = "{{ spec.url }}/stream";
+    window.STREAM_ALT = "{{ spec.title }} live view";
+</script>
+<script src="{{ url_for('static', filename='js/stream.js') }}" defer></script>
+{% endblock %}

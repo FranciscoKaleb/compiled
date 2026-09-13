@@ -1,0 +1,51 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Search fruit</h2>
+            <div class="field"><label class="field__label" for="strategy">Strategy</label>
+                <select id="strategy">
+                    <option value="naive">Naive — request on every keystroke, show whatever arrives</option>
+                    <option value="debounce">Debounce 300 ms — wait for the typing to pause</option>
+                    <option value="cancel">Debounce + AbortController — cancel stale requests</option>
+                </select></div>
+            <div class="field"><label class="field__label" for="q">Type quickly, e.g. "straw"</label>
+                <input type="text" id="q" autocomplete="off" placeholder="b, bl, blu, blue…">
+                <p class="field__help">The API answers in 200–1400 ms, randomly. That jitter is realistic, and it is what makes the naive version show wrong results.</p></div>
+            <div class="btn-row"><button type="button" class="btn btn--secondary btn--small" id="autoType">Auto-type "strawberry"</button><button type="button" class="btn btn--secondary btn--small" id="reset">Reset counters</button></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Results</h2><span class="small mono muted" id="shownFor"></span></div>
+            <div class="chips" id="results" style="min-height: 32px; margin-top: var(--space-3)"></div>
+            <div id="staleWarn"></div>
+            <div class="stats" style="margin-top: var(--space-4)" id="stats"></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            '<strong>Naive</strong>: ten keystrokes, ten requests, and because latency is random they come back in any order. The last to <em>arrive</em> wins — often results for "stra" landing after you typed "strawberry". The red alert and the "stale overwrote" counter catch every occurrence.',
+            '<strong>Debounce</strong>: nothing is sent until you stop typing for 300 ms. Requests drop from ten to one or two. But two can still race, and the stale problem is only rarer, not gone.',
+            '<strong>Debounce + AbortController</strong>: each new request aborts the previous one. An aborted fetch rejects with <code>AbortError</code> and can never write to the screen. "Stale overwrote" stays at zero, however fast you type.'
+        ], 'accent') }}
+        {{ notes.section('The three tools', [
+            '<strong>Debounce</strong> — act only after a quiet period. For search boxes, resize handlers, autosave. Trades a little latency for far fewer calls.',
+            '<strong>Throttle</strong> — act at most once per interval, however many events. For scroll and mousemove, where you want steady updates, not silence until the end.',
+            '<strong>Cancellation</strong> — abandon work that no longer matters. <code>AbortController</code> covers <code>fetch</code>; the same <code>signal</code> works with event listeners and many libraries. The server sees the connection close and can stop early too.',
+            'Alternative to cancelling: tag each response with the query it answers and ignore any that do not match the current input. Cheaper, but the server still does the wasted work.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Always abort on unmount / navigation. A component that is gone should not receive a response and try to render into a detached DOM node.',
+            'Aborting a request does not undo a side effect. Never use this pattern for POSTs that change state — the server may have already acted.',
+            'Debounce delay is a product decision: 150–300 ms feels instant for search; autosave can wait 1–2 s.',
+            'Show a loading indicator only after a short delay (~200 ms). A spinner that flashes on every keystroke is worse than none.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "cancellation";</script>
+<script src="{{ url_for('static', filename='js/lab_server.js') }}" defer></script>
+{% endblock %}

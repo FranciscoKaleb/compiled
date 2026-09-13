@@ -1,0 +1,20 @@
+{# Shared shell for every model page: title block, sidebar, description card. #}
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% block title %}{{ spec.title }} · Compiled{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_models.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">{{ spec.subtitle }}</span>
+    <h1>{{ spec.title }}</h1>
+    <p>{{ spec.blurb }}</p>
+</div>
+
+{% block model_content %}{% endblock %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/cache.js') }}" defer></script>
+{% block model_scripts %}{% endblock %}
+{% endblock %}

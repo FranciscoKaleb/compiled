@@ -1,0 +1,58 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Build a request</h2>
+            <div class="field"><label class="field__label" for="method">Method</label>
+                <select id="method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option></select></div>
+            <div class="field"><label class="field__label" for="query">Query string</label><input type="text" id="query" value="page=2&sort=name&tag=a&tag=b"><p class="field__help">Part of the URL, after <code>?</code>. Repeated keys are allowed.</p></div>
+            <div class="field"><label class="field__label" for="fragment">Fragment</label><input type="text" id="fragment" value="section-3"><p class="field__help">After <code>#</code>. Watch the echo: the server <strong>never receives it</strong>.</p></div>
+            <div class="field"><label class="field__label" for="hdr">Extra header (name: value)</label><input type="text" id="hdr" value="X-Trace-Id: abc-123"></div>
+            <div class="field"><label class="field__label" for="body">Body (sent for POST / PUT / PATCH)</label><textarea id="body" rows="3">{"title": "hello", "done": false}</textarea></div>
+            <button type="button" class="btn btn--block" id="send">Send</button>
+        </div>
+        <div class="card">
+            <h2 class="h3">The URL, taken apart</h2>
+            <pre class="small mono" id="urlParts"></pre>
+        </div>
+    </div>
+    <div class="stack">
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Request — exactly as the server received it</h2><span class="small muted" id="reqMeta"></span></div>
+            <pre class="small" id="rawReq" style="max-height: 330px; overflow:auto">Press Send.</pre>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Response — as the browser received it</h2><span class="small muted" id="resMeta"></span></div>
+            <pre class="small" id="rawRes" style="max-height: 330px; overflow:auto">—</pre>
+        </div>
+    </div>
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'An HTTP request is plain text: a <strong>request line</strong> (<code>GET /path?query HTTP/1.1</code>), then <strong>headers</strong> (one <code>Name: value</code> per line), a blank line, then an optional <strong>body</strong>. The left pane shows the exact text the server parsed — including headers the browser added without asking you: <code>Host</code>, <code>User-Agent</code>, <code>Accept</code>, <code>Cookie</code>.',
+            'The response has the same shape: a <strong>status line</strong> (<code>HTTP/1.1 200 OK</code>), headers, blank line, body. The browser hides some response headers from JavaScript (<code>Set-Cookie</code> for instance), so the right pane shows what <code>fetch()</code> can see.',
+            'Type something in <em>Fragment</em> and send: it appears in the URL bar but not in the echoed request. The fragment (<code>#…</code>) is for the browser only — it scrolls to an anchor or drives a single-page router, and never leaves the machine.',
+            'Switch to <strong>HEAD</strong>: the response has headers but the body is empty, by definition. Switch to <strong>OPTIONS</strong>: look for the <code>Allow</code> header.'
+        ], 'accent') }}
+        {{ notes.section('The URL, part by part', [
+            '<code>https://</code> — the <strong>scheme</strong>: which protocol, and (for https) that TLS encrypts everything after the hostname, including the path and query.',
+            '<code>user@</code> — obsolete userinfo; browsers strip or block it because it was used for phishing.',
+            '<code>example.com:8443</code> — <strong>host</strong> and <strong>port</strong>. The port is omitted when it is the default (80 / 443). The host also travels as the <code>Host</code> header, which is how one IP serves many sites.',
+            '<code>/lab/api/basics/echo</code> — the <strong>path</strong>: which resource. Case-sensitive on most servers.',
+            '<code>?page=2&amp;tag=a&amp;tag=b</code> — the <strong>query string</strong>: key=value pairs, percent-encoded, order not guaranteed to matter. Part of the URL, so it is logged, cached and bookmarked — never put secrets here.',
+            '<code>#section-3</code> — the <strong>fragment</strong>: client-side only.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'GET requests <em>can</em> carry a body per the spec, but browsers refuse to send one and servers ignore it. Data for GET goes in the query string.',
+            'Header names are case-insensitive (<code>content-type</code> = <code>Content-Type</code>); values usually are not. Duplicate headers are allowed for some (<code>Set-Cookie</code>) and merged for others.',
+            'The <code>Content-Length</code> the browser computes is in <em>bytes</em>, not characters — "é" is two bytes in UTF-8. The <code>Content-Type</code> charset says how to decode.',
+            'Everything here is HTTP/1.1 text. HTTP/2 and HTTP/3 carry the same request/response semantics in a binary framing with compressed headers — the model you learn here still applies.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "anatomy";</script>
+<script src="{{ url_for('static', filename='js/lab_basics.js') }}" defer></script>
+{% endblock %}

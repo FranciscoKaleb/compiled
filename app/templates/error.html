@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block title %}{{ code }} · Compiled{% endblock %}
+{% block content %}
+<div class="page-width">
+    <div class="page-head">
+        <span class="page-head__eyebrow">Error {{ code }}</span>
+        <h1>{{ message }}</h1>
+    </div>
+    <a class="btn" href="{{ url_for('main.home') }}">Back to the home page</a>
+</div>
+{% endblock %}

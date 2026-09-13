@@ -1,0 +1,64 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">One URL, negotiated</h2>
+            <p class="small muted">Every button requests exactly <code>/api/basics/negotiate</code>. Only the request headers differ.</p>
+            <div class="field"><label class="field__label" for="accept">Accept</label>
+                <select id="accept"><option>application/json</option><option>text/html</option><option>text/csv</option><option>text/plain</option><option value="text/html;q=0.9, application/json;q=0.8, */*;q=0.1">text/html;q=0.9, application/json;q=0.8, */*;q=0.1</option><option value="image/png">image/png (nothing the server can do)</option></select></div>
+            <div class="field"><label class="field__label" for="lang">Accept-Language</label>
+                <select id="lang"><option>en</option><option>fil</option><option>es</option><option value="fil-PH, fil;q=0.9, en;q=0.5">fil-PH, fil;q=0.9, en;q=0.5</option><option value="de">de (unsupported → falls back)</option></select></div>
+            <button type="button" class="btn btn--block" id="send">Send</button>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Response</h2><span class="small muted" id="meta"></span></div>
+            <pre class="small" id="resHeaders" style="max-height: 150px; overflow:auto">—</pre>
+            <div id="rendered" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Headers you will meet daily</h2>
+            <div class="table-wrap"><table class="data"><tbody>
+                <tr><td class="key">Host</td><td>Which site, on a server that hosts many. Mandatory in HTTP/1.1.</td></tr>
+                <tr><td class="key">Content-Type</td><td>What the body is: <code>application/json; charset=utf-8</code>. Both directions.</td></tr>
+                <tr><td class="key">Content-Length</td><td>Body size in bytes. Absent when streaming (chunked).</td></tr>
+                <tr><td class="key">Accept / Accept-Language / Accept-Encoding</td><td>What the client can handle. The server picks.</td></tr>
+                <tr><td class="key">Authorization</td><td><code>Bearer &lt;token&gt;</code> or <code>Basic base64(user:pass)</code>. Never cached.</td></tr>
+                <tr><td class="key">Cookie / Set-Cookie</td><td>The session mechanism. Set-Cookie is hidden from JS.</td></tr>
+                <tr><td class="key">Cache-Control / ETag</td><td>Caching rules (Level 2).</td></tr>
+                <tr><td class="key">Location</td><td>Where to go: with 3xx redirects and 201 Created.</td></tr>
+                <tr><td class="key">User-Agent</td><td>Which browser. Lies constantly; do not branch on it.</td></tr>
+                <tr><td class="key">Origin / Referer</td><td>Where the request came from (CORS, CSRF checks).</td></tr>
+                <tr><td class="key">Vary</td><td>Which request headers change the response — vital for caches.</td></tr>
+                <tr><td class="key">X-Request-Id</td><td>Not standard, universal anyway: trace one request through every log.</td></tr>
+            </tbody></table></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'The server calls <code>request.accept_mimetypes.best_match([...])</code>: it reads your <code>Accept</code> header, compares it to the types it can produce, and picks the best. The response\'s <code>Content-Type</code> is the answer, and <code>Vary: Accept, Accept-Language</code> warns caches that this URL has several bodies.',
+            'The <strong>q-values</strong> option (<code>text/html;q=0.9, application/json;q=0.8</code>) is what real browsers send: a ranked list of preferences from 1 (default) to 0. The server honours the ranking.',
+            '<strong>image/png</strong>: nothing matches, so the server falls back to JSON. A stricter API would answer <code>406 Not Acceptable</code>.',
+            '<code>Accept-Language: de</code> falls back to English — the server picks the best it <em>has</em>, and says so in <code>Content-Language</code>.'
+        ], 'accent') }}
+        {{ notes.section('Negotiation in practice', [
+            'Browsers negotiate constantly without you noticing: <code>Accept-Encoding</code> gets you gzip (Level 2), <code>Accept-Language</code> gets you a localised page, <code>Accept: image/avif,image/webp</code> gets you a smaller image from a smart CDN.',
+            'APIs mostly skip it: one format (JSON), one URL. When they do offer more, a file extension (<code>/report.csv</code>) or query parameter (<code>?format=csv</code>) is often clearer than Accept — bookmarkable, cacheable, curl-able.',
+            'The <code>Content-Type</code> you <em>send</em> is negotiation\'s mirror: it tells the server how to parse your body. Level 0\'s next page is all about that.',
+            'Custom headers (<code>X-Trace-Id</code>) are fine; the <code>X-</code> prefix is no longer required but still conventional. Remember CORS: a custom header on a cross-origin request triggers a preflight (Level 2).'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Forget <code>Vary</code> and a cache will serve the JSON body to the next visitor who asked for HTML — or the German page to an English speaker.',
+            'Header size limits are real (typically 8 KB total). Enormous cookies push requests over it and produce <code>431 Request Header Fields Too Large</code>.',
+            '<code>User-Agent</code> sniffing breaks with every new browser; feature-detect in JavaScript instead. Chrome now sends a reduced UA and Client Hints headers for exactly this reason.',
+            'Headers are visible to every proxy on the path unless TLS is used; with HTTPS they are encrypted along with the body, but the <em>hostname</em> still leaks via SNI and DNS.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "headers";</script>
+<script src="{{ url_for('static', filename='js/lab_basics.js') }}" defer></script>
+{% endblock %}

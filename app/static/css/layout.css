@@ -1,0 +1,226 @@
+/* ==========================================================================
+   Page chrome: header, sidebar, content.
+   The sidebar is a normal flex column on desktop and an off-canvas drawer on
+   narrow screens. Nothing is height-clamped, so long pages simply scroll.
+   ========================================================================== */
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    height: var(--header-height);
+    padding: 0 var(--space-4);
+    background: var(--bg-raised);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.site-header__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 700;
+    font-size: var(--text-lg);
+    color: var(--text);
+    white-space: nowrap;
+}
+.site-header__brand:hover { text-decoration: none; }
+.site-header__mark {
+    display: grid;
+    place-items: center;
+    width: 30px; height: 30px;
+    border-radius: var(--radius-sm);
+    background: var(--brand);
+    color: var(--brand-contrast);
+    font-size: var(--text-sm);
+    font-weight: 800;
+}
+
+.site-nav {
+    display: flex;
+    gap: var(--space-1);
+    margin-left: auto;
+    align-items: center;
+}
+
+.site-nav a {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: 550;
+}
+.site-nav a:hover { background: var(--bg-hover); color: var(--text); text-decoration: none; }
+.site-nav a[aria-current="page"] { color: var(--brand-strong); background: var(--brand-soft); }
+
+.layout {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+}
+
+/* --- sidebar ------------------------------------------------------------ */
+
+.sidebar {
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    align-self: stretch;
+    padding: var(--space-4) var(--space-3) var(--space-6);
+    background: var(--bg-raised);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: var(--header-height);
+    max-height: calc(100vh - var(--header-height));
+    overflow-y: auto;
+}
+
+.sidebar__title {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin: 0 0 var(--space-3);
+    padding: 0 var(--space-2);
+}
+
+.sidebar__group { border-bottom: 1px solid var(--border); }
+.sidebar__group:last-child { border-bottom: 0; }
+
+/* A real button: focusable and operable from the keyboard, unlike the
+   click-only <div> this replaces. */
+.sidebar__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3) var(--space-2);
+    background: none;
+    border: 0;
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+.sidebar__toggle:hover { background: var(--bg-hover); }
+
+.sidebar__chevron {
+    color: var(--text-faint);
+    transition: transform var(--transition);
+    flex: none;
+}
+.sidebar__toggle[aria-expanded="true"] .sidebar__chevron { transform: rotate(90deg); }
+
+.sidebar__items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    padding-bottom: var(--space-2);
+}
+.sidebar__toggle[aria-expanded="false"] + .sidebar__items { display: none; }
+
+.sidebar__items a {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    border-left: 2px solid transparent;
+}
+.sidebar__items a:hover { background: var(--bg-hover); color: var(--text); text-decoration: none; }
+.sidebar__items a[aria-current="page"] {
+    color: var(--brand-strong);
+    background: var(--brand-soft);
+    border-left-color: var(--brand);
+    font-weight: 600;
+}
+
+.sidebar__footer {
+    margin-top: var(--space-5);
+    padding: var(--space-3) var(--space-2) 0;
+    border-top: 1px solid var(--border);
+}
+
+/* --- content ------------------------------------------------------------ */
+
+.content {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: var(--space-6) var(--space-5) var(--space-7);
+}
+
+.content--wide { max-width: 1100px; }
+.content--full { max-width: 1600px; }
+.page-width { max-width: 960px; }
+
+.page-head { margin-bottom: var(--space-5); }
+.page-head__eyebrow {
+    display: inline-block;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--brand-strong);
+    margin-bottom: var(--space-2);
+}
+.page-head h1 { margin-bottom: var(--space-2); }
+.page-head p { color: var(--text-muted); max-width: 68ch; }
+
+/* --- drawer behaviour on small screens ---------------------------------- */
+
+.sidebar-toggle {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+
+.sidebar-scrim { display: none; }
+
+@media (max-width: 900px) {
+    .sidebar-toggle { display: inline-flex; }
+
+    .sidebar {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        bottom: 0;
+        z-index: 35;
+        max-height: none;
+        transform: translateX(-100%);
+        transition: transform var(--transition);
+        box-shadow: var(--shadow-lg);
+    }
+    body[data-drawer="open"] .sidebar { transform: translateX(0); }
+
+    body[data-drawer="open"] .sidebar-scrim {
+        display: block;
+        position: fixed;
+        inset: var(--header-height) 0 0 0;
+        background: rgba(15, 23, 42, 0.45);
+        z-index: 30;
+    }
+
+    .content { padding: var(--space-5) var(--space-4) var(--space-6); }
+    .site-nav a { padding: var(--space-2); }
+}
+
+@media (max-width: 560px) {
+    .site-header { gap: var(--space-2); padding: 0 var(--space-3); }
+    .site-header__brand span:last-child { display: none; }
+    .content { padding: var(--space-4) var(--space-3) var(--space-6); }
+}

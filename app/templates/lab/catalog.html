@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% block title %}Web Lab · Compiled{% endblock %}
+{% block content_class %}content--wide{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_lab.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">Web Lab</span>
+    <h1>How browsers and servers talk</h1>
+    <p>Live demos of the plumbing behind every web app. Each page shows the client, a log of
+       what is actually on the wire, and the numbers — so the trade-offs are seen, not explained.
+       Work through them in order.</p>
+</div>
+
+{% for key, title, description, specs in groups %}
+<section class="catalog-section">
+    <div class="catalog-section__head"><h2>{{ title }}</h2><p>{{ description }}</p></div>
+    <div class="card-grid">
+        {% for spec in specs %}
+        <a class="tile" href="{{ spec.url }}">
+            <span class="tile__eyebrow">Step {{ spec.level }} · {{ spec.subtitle }}</span>
+            <span class="tile__title">{{ spec.title }}</span>
+            <span class="tile__blurb">{{ spec.blurb }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+{% endblock %}

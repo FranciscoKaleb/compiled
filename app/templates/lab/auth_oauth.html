@@ -1,0 +1,67 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3" style="grid-template-columns: minmax(0, 2.3fr) minmax(260px, 0.9fr)">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">The happy path</h2>
+            <p class="small muted">You are on <strong>Compiled</strong> (the client). Clicking below redirects your browser to <strong>FakeID</strong> (the identity provider), also hosted here. You will see its consent screen, approve, and land on a results page that lists every step both sides took.</p>
+            <a class="btn" href="{{ url_for('lab.oauth_start') }}">Log in with FakeID →</a>
+        </div>
+        <div class="card">
+            <h2 class="h3">Break it on purpose</h2>
+            <div class="btn-row">
+                <a class="btn btn--danger" href="{{ url_for('lab.oauth_start', sabotage='redirect') }}">Evil redirect_uri</a>
+                <a class="btn btn--danger" href="{{ url_for('lab.oauth_start', sabotage='verifier') }}">Wrong PKCE verifier</a>
+                <a class="btn btn--danger" href="{{ url_for('lab.oauth_start', sabotage='replay') }}">Reuse the code</a>
+                <a class="btn btn--danger" href="{{ url_for('lab.oauth_callback', state='forged-state', code='ac_stolen') }}">Forged callback</a>
+            </div>
+            <div class="table-wrap" style="margin-top: var(--space-4)"><table class="data">
+                <thead><tr><th>Attack</th><th>What the attacker hopes</th><th>What stops it</th></tr></thead>
+                <tbody>
+                <tr><td class="key">Evil redirect_uri</td><td>The IdP sends the code to a URL they control</td><td>IdP compares against the registered URI and refuses — <em>without redirecting</em></td></tr>
+                <tr><td class="key">Wrong verifier</td><td>A stolen code is exchanged for tokens</td><td>PKCE: <code>SHA256(verifier)</code> must equal the challenge sent at the start</td></tr>
+                <tr><td class="key">Reuse the code</td><td>Exchange the same code twice</td><td>Codes are one-shot; a second use also revokes the first tokens</td></tr>
+                <tr><td class="key">Forged callback</td><td>Trick the client into finishing a flow it never started</td><td><code>state</code> must match a pending flow on the client</td></tr>
+                </tbody></table></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">The dance</h2>
+            <pre class="small">Browser                Client (Compiled)              IdP (FakeID)
+  │  click "Log in"        │                              │
+  │───────────────────────▶│ mint state, verifier          │
+  │◀── 302 to /authorize ──│ store both, keyed by state    │
+  │─────────────── GET /idp/authorize?client_id&redirect_uri&state&code_challenge ──▶│
+  │◀────────────────────────────────────── consent page ───│
+  │─────────────── POST /idp/approve  (Allow) ─────────────────────────────────────▶│
+  │◀── 302 to /oauth/callback?code&state ─────────────────────────────────────────│
+  │───────────────────────▶│ state matches? ✓              │
+  │                        │── POST /idp/token {code, verifier, client_secret} ──▶│
+  │                        │◀── {access_token, id_token} ──────────────────────────│
+  │                        │ verify id_token: sig, exp, aud, nonce                  │
+  │                        │── GET /idp/userinfo  Bearer ──────────────────────────▶│
+  │◀── logged-in page ─────│◀── {sub, name, email} ────────────────────────────────│</pre>
+        </div>
+    </div>
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('Who is who', [
+            '<strong>Resource owner</strong>: you. <strong>Client</strong>: the app that wants to know who you are (Compiled). <strong>Authorization server / IdP</strong>: the one that actually authenticates you (FakeID, standing in for Google, GitHub, Okta).',
+            '<strong>OAuth 2.0</strong> is about <em>delegated access</em>: getting an access token to call an API on your behalf. <strong>OpenID Connect</strong> adds identity: the <code>id_token</code>, a JWT that says who you are, plus the <code>userinfo</code> endpoint and the <code>openid</code> scope.',
+            'The <strong>authorization code</strong> flow is the one to use everywhere now — web, mobile, single-page. The older implicit flow (tokens in the URL fragment) is deprecated.'
+        ], 'accent') }}
+        {{ notes.section('The three secrets and what each protects', [
+            '<code>state</code>: random, minted by the client, round-tripped through the IdP. On callback it must match a flow this browser started. Stops an attacker from making you complete <em>their</em> login (login CSRF) and forged callbacks.',
+            '<code>code_verifier</code> / <code>code_challenge</code> (PKCE): the client keeps a random secret and sends only its hash. The code alone is worthless — the token endpoint demands the original. Stops code interception on redirects, which matters most on mobile and SPAs that cannot keep a client_secret.',
+            '<code>nonce</code>: random, sent in the request, echoed inside the <code>id_token</code>. Proves the id_token was minted for <em>this</em> request and not replayed from another.',
+            '<code>client_secret</code>: authenticates the client at the token endpoint. Only works for backends that can keep a secret — hence PKCE for everyone else.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Validate <code>redirect_uri</code> with an exact match against registered values and, on failure, <strong>do not redirect</strong>. Every real-world code-theft story starts with a lax redirect check.',
+            'Verify the <code>id_token</code> properly: signature against the IdP\'s published keys (JWKS), <code>iss</code>, <code>aud</code> = your client_id, <code>exp</code>, <code>nonce</code>. Decoding it is not verifying it.',
+            'The access token is opaque to you — do not parse it, and do not use it as proof of identity. That is what the id_token is for.',
+            'Codes must be short-lived (a minute) and single-use. A second exchange should revoke what the first one issued, as this IdP does.',
+            'Store <code>state</code> and <code>verifier</code> server-side or in a secure cookie tied to the browser — never in the URL.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% block title %}Models · Compiled{% endblock %}
+{% block content_class %}content--wide{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_models.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">Catalogue</span>
+    <h1>Models</h1>
+    <p>{{ all_models | length }} demos grouped by task. Every model is loaded
+       from local weights the first time you run it.</p>
+</div>
+
+<div class="field search-field">
+    <label class="field__label" for="modelSearch">Filter</label>
+    <input type="text" id="modelSearch" placeholder="Search by name or task…"
+           autocomplete="off">
+</div>
+
+<div id="catalogResults">
+{% for key, title, description, specs in categories %}
+<section class="catalog-section" data-section>
+    <div class="catalog-section__head">
+        <h2>{{ title }}</h2>
+        <p>{{ description }}</p>
+    </div>
+    <div class="card-grid">
+        {% for spec in specs %}
+        <a class="tile" href="{{ spec.url }}"
+           data-search="{{ (spec.title ~ ' ' ~ spec.subtitle ~ ' ' ~ title ~ ' ' ~ spec.blurb) | lower }}">
+            <span class="tile__eyebrow">{{ spec.subtitle }}</span>
+            <span class="tile__title">{{ spec.title }}</span>
+            <span class="tile__blurb">{{ spec.blurb }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+</div>
+
+<p class="empty-note" id="noMatches" hidden>Nothing matches that search.</p>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/catalog.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/cache.js') }}" defer></script>
+{% endblock %}

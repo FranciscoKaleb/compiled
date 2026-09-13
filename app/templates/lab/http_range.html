@@ -1,0 +1,52 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Resumable download</h2>
+            <p class="small muted" id="meta">Fetching file details…</p>
+            <div class="score-list__bar" style="height: 14px; margin: var(--space-3) 0"><span id="bar" style="width:0%"></span></div>
+            <div class="ticker"><span class="ticker__price" id="progress" style="font-size: var(--text-xl)">0%</span><span class="ticker__seq" id="received">0 B received</span></div>
+            <div class="btn-row" style="margin-top: var(--space-4)">
+                <button type="button" class="btn" id="start">Start</button>
+                <button type="button" class="btn btn--secondary" id="pause" disabled>Pause</button>
+                <button type="button" class="btn btn--secondary" id="resume" disabled>Resume</button>
+                <button type="button" class="btn btn--secondary" id="reset">Reset</button>
+            </div>
+            <div class="field" style="margin-top: var(--space-4)">
+                <label class="field__label" for="chunk">Chunk size</label>
+                <div class="range-row"><input type="range" id="chunk" min="128" max="2048" step="128" value="512"><output for="chunk">512 KB</output></div>
+                <p class="field__help">Each chunk is its own request with a <code>Range: bytes=…</code> header and a <code>206 Partial Content</code> answer.</p>
+            </div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Integrity</h2>
+            <div id="verify" class="stack"><p class="small muted">When the download completes, the reassembled bytes are hashed with SubtleCrypto and compared to the server's SHA-256.</p></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Each request names the bytes it wants: <code>Range: bytes=524288-1048575</code>. The server answers <code>206 Partial Content</code> with <code>Content-Range: bytes 524288-1048575/5242880</code> — the slice, and the total so the client knows when it is done.',
+            '<strong>Pause</strong> aborts the in-flight request with <code>AbortController</code>; the bytes already received are kept. <strong>Resume</strong> simply asks for the next range starting at the byte count. No server-side session exists.',
+            'At the end the browser hashes all 5 MB with <code>crypto.subtle.digest</code> and compares to the server\'s hash. Pausing and resuming ten times changes nothing about the result.'
+        ], 'accent') }}
+        {{ notes.section('Where this is used', [
+            'Every video player: seeking to minute 40 is a range request for the bytes at that offset, not a download of the first 39 minutes. Your video preview tool serves <code>206</code> for exactly this reason.',
+            'Download managers and package managers resume interrupted downloads; app updaters fetch only the changed blocks.',
+            'Large-file uploads use the mirror image: the client sends chunks with <code>Content-Range</code> (the tus protocol, S3 multipart).'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'The server advertises support with <code>Accept-Ranges: bytes</code>. Without it, clients must assume a partial request will come back as a full 200 body.',
+            'Resuming is only safe if the file has not changed. Send an <code>ETag</code> and let the client add <code>If-Range</code>; a mismatch gets the whole file again instead of a corrupted splice.',
+            'A range past the end is <code>416 Range Not Satisfiable</code> with <code>Content-Range: bytes */5242880</code>. Try it: Pause, Reset, then send a request by hand.',
+            'Dynamically generated responses cannot support ranges unless you can regenerate byte offsets deterministically — this demo can because the blob is seeded.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "range-requests";</script>
+<script src="{{ url_for('static', filename='js/lab_http.js') }}" defer></script>
+{% endblock %}

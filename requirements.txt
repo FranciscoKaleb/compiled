@@ -1,0 +1,43 @@
+# Web
+Flask==3.1.3
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
+SQLAlchemy==2.0.46
+flask-sock==0.7.0
+Brotli==1.2.0
+simple-websocket==1.1.0
+pyotp==2.10.0
+pywebpush==2.5.0
+python-dotenv==1.2.2
+
+# Optional: only needed if DATABASE_URL points at MySQL
+PyMySQL==1.1.2
+
+# Inference
+torch==2.10.0
+torchvision==0.25.0
+transformers==5.2.0
+onnxruntime==1.24.2
+insightface==0.7.3
+opencv-python-headless==4.13.0.92
+numpy==2.4.2
+pillow==11.3.0
+scipy==1.17.0
+
+# Tools. System packages also needed: ffmpeg (video/audio tools), poppler-utils
+# (PDF to images), libreoffice (Word to PDF).
+PyPDF2==3.0.1
+rembg==2.0.72
+qrcode==8.2
+python-barcode==0.16.1
+pillow-heif==1.7.0
+pdf2image==1.17.0
+openpyxl==3.1.5
+pandas==3.0.1
+PyYAML==6.0.3
+faster-whisper==1.2.1
+
+# scripts/download_models.py and scripts/train_sentiment.py
+huggingface_hub==1.5.0
+datasets==4.8.3
+accelerate==1.13.0

@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block title %}OAuth flow result · Web Lab{% endblock %}
+{% block content_class %}content--full{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_lab.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">Auth & sessions · step 23 · OAuth callback</span>
+    <h1>{% if outcome == 'ok' %}Logged in as {{ user.name }}{% elif outcome == 'revoked' %}Logged in… then revoked{% else %}The flow was stopped{% endif %}</h1>
+    <p>{% if outcome == 'ok' %}Every check passed. Below is everything that happened on both sides, in order.{% elif outcome == 'revoked' %}The first exchange succeeded. Reusing the code was rejected — and because a reuse means the code leaked, the IdP also revoked the tokens from the first exchange. The userinfo call then failed.{% else %}Something did not check out — which is the point of the sabotage buttons. Read the log to find the exact step.{% endif %}</p>
+</div>
+<div class="lab-grid" style="grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr)">
+    <div class="card">
+        <h2 class="h3">Flow log</h2>
+        <div class="wire" style="height: auto; max-height: 720px">
+        {% for entry in flow.log %}
+            <div class="wire__line" style="grid-template-columns: 56px 52px 1fr">
+                <span class="wire__time">{{ '%.2f' % entry.t }}s</span>
+                <span class="wire__dir {{ 'in' if entry.side == 'idp' else 'out' }}">{{ entry.side | upper }}</span>
+                <span class="wire__text"><strong>{{ entry.step }}</strong>
+                {%- for key, value in entry.items() if key not in ('t', 'side', 'step') -%}
+                    <br>&nbsp;&nbsp;{{ key }}: {% if value is string or value is number or value is boolean or value is none %}{{ value }}{% elif value is mapping %}{{ value | tojson }}{% else %}{{ value | join(' · ') }}{% endif %}
+                {%- endfor -%}
+                </span>
+            </div>
+        {% else %}
+            <div class="wire__line"><span class="wire__text">No such flow. This callback did not belong to any login this client started.</span></div>
+        {% endfor %}
+        </div>
+        <div class="btn-row" style="margin-top: var(--space-4)">
+            <a class="btn" href="{{ url_for('lab.oauth') }}">← Back to the OAuth page</a>
+            <a class="btn btn--secondary" href="{{ url_for('lab.oauth_start') }}">Run it again</a>
+        </div>
+    </div>
+    <div class="stack">
+        {% if outcome == 'ok' %}
+        <div class="card">
+            <h2 class="h3">userinfo</h2>
+            <pre class="small">{{ user | tojson(indent=2) }}</pre>
+        </div>
+        <div class="card">
+            <h2 class="h3">id_token (a JWT from the IdP)</h2>
+            <p class="small muted">Signed with the IdP's key, not this app's. The client verified signature, <code>aud</code>, <code>exp</code> and <code>nonce</code> before trusting the name inside it.</p>
+            <pre class="small" style="word-break: break-all; white-space: pre-wrap">{{ id_token }}</pre>
+        </div>
+        <div class="card">
+            <h2 class="h3">access_token (opaque)</h2>
+            <p class="small muted">Means nothing to the client. Only the IdP can look it up. Presented as <code>Authorization: Bearer …</code> to the userinfo endpoint.</p>
+            <pre class="small" style="word-break: break-all; white-space: pre-wrap">{{ access_token }}</pre>
+        </div>
+        {% elif outcome == 'revoked' %}
+        <div class="alert alert--warn">Find <strong>replay detected</strong> in the log, then the failed userinfo call below it.</div>
+        {% else %}
+        <div class="alert alert--error">Look for the line marked <strong>REJECT</strong> in the log.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

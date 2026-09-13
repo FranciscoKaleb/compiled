@@ -1,0 +1,55 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Render the Mandelbrot set</h2>
+            <div class="field"><label class="field__label" for="size">Image size</label>
+                <div class="range-row"><input type="range" id="size" min="200" max="1000" step="100" value="600"><output for="size">600 × 400</output></div></div>
+            <div class="field"><label class="field__label" for="iters">Max iterations per pixel</label>
+                <div class="range-row"><input type="range" id="iters" min="50" max="1000" step="50" value="300"><output for="iters">300</output></div></div>
+            <div class="btn-row">
+                <button type="button" class="btn" id="runJs">JavaScript</button>
+                <button type="button" class="btn" id="runWasm">WebAssembly</button>
+                <button type="button" class="btn btn--secondary" id="runBoth">Both, 3 rounds each</button>
+            </div>
+            <div class="stats" style="margin-top: var(--space-4)" id="stats"></div>
+        </div>
+        <div class="compare" style="grid-template-columns: 1fr 1fr">
+            <div class="compare__card"><div class="card__title"><h3 style="margin:0">JavaScript</h3><span class="small muted" id="jsMs">—</span></div><canvas id="jsCanvas" style="width:100%; border-radius: 8px; background:#000"></canvas></div>
+            <div class="compare__card"><div class="card__title"><h3 style="margin:0">WebAssembly</h3><span class="small muted" id="wasmMs">—</span></div><canvas id="wasmCanvas" style="width:100%; border-radius: 8px; background:#000"></canvas></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">The module</h2>
+            <p class="small muted">300 bytes, hand-assembled by <code>scripts/build_wasm.py</code> — no compiler involved. It exports one function and 2 MB of linear memory. Both renderers run the same algorithm; the JS version is below.</p>
+            <pre class="small" id="jsSource"></pre>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Both sides compute the same escape-time fractal: for each pixel, iterate <code>z = z² + c</code> until it escapes or hits the limit. It is all floating-point multiply-add in tight nested loops — the kind of code compilers love.',
+            'The Wasm module writes one byte per pixel into its own <strong>linear memory</strong>; JavaScript then reads that memory as a <code>Uint8Array</code> and paints it. There is no copy across the boundary — JS is looking directly at the module\'s memory.',
+            '<strong>Both, 3 rounds</strong> matters: the first JavaScript run is slower because the JIT has not warmed up. Wasm is compiled ahead of time and is fast from the first call. Compare the <em>best</em> times.',
+            'Expect Wasm to win by 1.3–3× here. If you see roughly equal numbers, that is the JIT doing its job on a loop that is easy to optimise — and that is the honest lesson.'
+        ], 'accent') }}
+        {{ notes.section('What WebAssembly actually is', [
+            'A compact binary instruction format for a stack machine, with a small set of types (<code>i32</code>, <code>i64</code>, <code>f32</code>, <code>f64</code>) and structured control flow. Browsers compile it to native code before running it. The page fetched a <code>.wasm</code> and called <code>WebAssembly.instantiate</code>.',
+            'It is a compile <em>target</em>: C, C++, Rust, Go, Zig and others produce it. Nobody writes it by hand except for demos like this one — read <code>scripts/build_wasm.py</code> to see how little there is to it.',
+            'It has no access to the DOM, the network or anything else. Everything goes through imports and exports across the JS boundary. That sandbox is why browsers were willing to ship it.',
+            'Predictable performance is the real selling point: no garbage collector pauses, no deoptimisation cliffs, the same speed on the first call as on the thousandth.'
+        ]) }}
+        {{ notes.section('When it helps — and when it does not', [
+            '<strong>Helps</strong>: numeric kernels (image and audio processing, physics, compression, crypto), porting existing native libraries (ffmpeg, SQLite, image codecs, games), and code that must not have GC pauses.',
+            '<strong>Does not help</strong>: DOM-heavy UI code, string manipulation, anything that spends its time calling browser APIs. Each JS↔Wasm call costs a little, and copying strings across the boundary costs more.',
+            'Modern JITs make well-typed JavaScript very fast. Measure before rewriting; a typed-array loop in JS is often within 20% of Wasm.',
+            'Debugging and bundling are harder, binaries need to be fetched and compiled (cache them), and threads need the cross-origin isolation headers.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "wasm";</script>
+<script src="{{ url_for('static', filename='js/lab_browser.js') }}" defer></script>
+{% endblock %}

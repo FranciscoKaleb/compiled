@@ -1,0 +1,48 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Start a slow job</h2>
+            <div class="field"><label class="field__label" for="steps">Work units</label>
+                <div class="range-row"><input type="range" id="steps" min="5" max="60" step="5" value="20"><output for="steps">20</output></div></div>
+            <div class="field"><label class="field__label" for="follow">Follow progress with</label>
+                <select id="follow"><option value="poll">Polling the status URL every second</option><option value="sse" selected>SSE on the job's event stream</option></select></div>
+            <div class="field"><label class="check"><input type="checkbox" id="failAt"> <span>Make it fail half way</span></label></div>
+            <div class="btn-row"><button type="button" class="btn" id="start">Start job</button><button type="button" class="btn btn--danger" id="cancel" disabled>Cancel</button></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0"><span class="status-dot" id="dot"></span>Job</h2><span class="small mono muted" id="jobId"></span></div>
+            <div class="score-list__bar" style="height: 14px; margin: var(--space-3) 0"><span id="bar" style="width:0%"></span></div>
+            <p id="message" class="small muted">No job yet.</p>
+            <pre id="jobState" class="small" style="max-height:220px; overflow:auto">—</pre>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'The start request returns <code>202 Accepted</code> with a <code>Location</code> header in a few milliseconds — before any work has happened. The work runs on a worker thread; the HTTP connection is already closed.',
+            'The status URL is a resource like any other. Poll it, or open its <code>/events</code> stream — the same Level 1 trade-off, applied to one job instead of a feed.',
+            'Cancel is <em>cooperative</em>: it sets a flag the worker checks between steps. Threads cannot be killed from outside, so a step that is mid-way always finishes first.',
+            'Tick "fail half way": the job reaches a terminal <code>failed</code> state with an error message, the bar turns red, and the stream ends. Every job must end in exactly one of done / failed / cancelled.'
+        ], 'accent') }}
+        {{ notes.section('The pattern, in production', [
+            'Swap the thread for a queue — RQ, Celery, Dramatiq, Sidekiq, SQS + a consumer. Swap the dict for a database table. Nothing about the HTTP contract changes; that is the point of designing it this way first.',
+            'Persist job state so a restart does not lose it, and record <code>started_at</code> / <code>finished_at</code> so stuck jobs can be found and reaped.',
+            'Return a job id the client can store. If the browser tab closes and reopens, it should be able to resume watching the same job.',
+            'Give results a retention period and a way to fetch them later (a <code>result_url</code>), rather than only inline in the status body.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Do not hold the original request open "just for a few seconds". Load balancers time out at 30–60 s, the client retries, and now the job runs twice. If it might take longer than a second or two, 202 it.',
+            'Workers must be idempotent or the queue must guarantee at-most-once delivery — most guarantee at-least-once, so a crashed worker\'s job will be redelivered.',
+            'Progress percentages lie when steps take unequal time. Report what was done ("7 of 20 chunks") and let the UI draw the bar.',
+            'Clean up: this demo drops finished jobs after ten minutes. Without that, the in-memory table grows forever.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "background-jobs";</script>
+<script src="{{ url_for('static', filename='js/lab_server.js') }}" defer></script>
+{% endblock %}

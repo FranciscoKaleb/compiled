@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+{% block title %}Compiled · ML models and file tools{% endblock %}
+{% block content_class %}content--wide{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Compiled</h1>
+    <p>
+        A collection of machine-learning demos and file utilities, built with
+        Flask. Every model runs locally on this machine — nothing is uploaded
+        anywhere.
+    </p>
+    <div class="hero__stats">
+        <div class="stat">
+            <div class="stat__value">{{ model_count }}</div>
+            <div class="stat__label">Models</div>
+        </div>
+        <div class="stat">
+            <div class="stat__value">{{ categories | length }}</div>
+            <div class="stat__label">Categories</div>
+        </div>
+        <div class="stat">
+            <div class="stat__value">{{ all_tools | length }}</div>
+            <div class="stat__label">Tools</div>
+        </div>
+    </div>
+</section>
+
+{% for key, title, description, specs in categories %}
+<section class="catalog-section">
+    <div class="catalog-section__head">
+        <h2>{{ title }}</h2>
+        <p>{{ description }}</p>
+    </div>
+    <div class="card-grid">
+        {% for spec in specs %}
+        <a class="tile" href="{{ spec.url }}">
+            <span class="tile__eyebrow">{{ spec.subtitle }}</span>
+            <span class="tile__title">{{ spec.title }}</span>
+            <span class="tile__blurb">{{ spec.blurb }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+
+{% for key, title, description, specs in lab_groups %}
+<section class="catalog-section">
+    <div class="catalog-section__head">
+        <h2>Web Lab · {{ title }}</h2>
+        <p>{{ description }} — live, with the traffic visible.</p>
+    </div>
+    <div class="card-grid">
+        {% for spec in specs %}
+        <a class="tile" href="{{ spec.url }}">
+            <span class="tile__eyebrow">Step {{ spec.level }} · {{ spec.subtitle }}</span>
+            <span class="tile__title">{{ spec.title }}</span>
+            <span class="tile__blurb">{{ spec.blurb }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+
+{% for key, title, description, specs in tool_categories %}
+<section class="catalog-section">
+    <div class="catalog-section__head">
+        <h2>{{ title }} tools</h2>
+        <p>{{ description }}</p>
+    </div>
+    <div class="card-grid">
+        {% for tool in specs %}
+        <a class="tile" href="{{ tool.url }}">
+            <span class="tile__eyebrow">{{ tool.subtitle }}</span>
+            <span class="tile__title">{{ tool.title }}</span>
+            <span class="tile__blurb">{{ tool.blurb }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <div class="card__title">
+                <h2 class="h3" style="margin:0"><span class="status-dot" id="dot"></span>Live ticker</h2>
+                <span class="small muted" id="stateText">idle</span>
+            </div>
+            <div class="ticker" style="margin-top: var(--space-3)">
+                <span class="ticker__price" id="price">—</span>
+                <span class="ticker__seq" id="seq"></span>
+            </div>
+            <div class="btn-row" style="margin-top: var(--space-4)">
+                <button type="button" class="btn" id="start">Connect</button>
+                <button type="button" class="btn btn--secondary" id="stop" disabled>Disconnect</button>
+            </div>
+            {% if spec.slug == 'short-polling' %}
+            <div class="field" style="margin-top: var(--space-4)">
+                <label class="field__label" for="interval">Poll every</label>
+                <div class="range-row">
+                    <input type="range" id="interval" min="250" max="5000" step="250" value="1000">
+                    <output for="interval">1000 ms</output>
+                </div>
+                <p class="field__help">The feed changes about once a second. Poll faster and the wasted share rises; slower and you start missing ticks.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2 class="h3">Numbers</h2>
+            <div class="stats" id="stats"></div>
+            <p class="field__help" style="margin-top: var(--space-3)">Bytes are estimates: JavaScript cannot read raw headers, so a typical header block is assumed per request and response.</p>
+        </div>
+
+        <div class="card">
+            <h2 class="h3">Break things</h2>
+            <div class="btn-row">
+                <button type="button" class="btn btn--danger btn--small" id="outage">Simulate 8 s outage</button>
+                <button type="button" class="btn btn--secondary btn--small" id="publish">Inject an event now</button>
+            </div>
+            <p class="field__help" style="margin-top: var(--space-3)" id="explain"></p>
+        </div>
+
+        {% if spec.slug == 'websocket' %}
+        <div class="card">
+            <h2 class="h3">Two-way: chat</h2>
+            <p class="small muted">Open this page in a second tab. Only WebSockets can carry this direction — the others would need a separate POST.</p>
+            <div class="chat" id="chat"></div>
+            <form id="chatForm" style="display:flex; gap: var(--space-2); margin-top: var(--space-3)">
+                <input type="text" id="chatText" placeholder="Say something…" maxlength="280" autocomplete="off" style="flex:1">
+                <button type="submit" class="btn btn--small">Send</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card__title">
+            <h2 class="h3" style="margin:0">On the wire</h2>
+            <label class="check small"><input type="checkbox" id="pause"> <span>Pause log</span></label>
+            <button type="button" class="btn btn--secondary btn--small" id="clearLog">Clear</button>
+        </div>
+        <div class="wire" id="wire" role="log" aria-live="off" style="margin-top: var(--space-3); height: 560px"></div>
+    </div>
+
+    <aside class="lab-notes">
+        <div class="note-columns">
+        {% if spec.slug == 'short-polling' %}
+        {{ notes.section('What you are seeing', [
+            'Every line pair in the wire log is a complete HTTP exchange — request line, ~400 bytes of headers, response headers, body — for about 30 bytes of actual news.',
+            'The <strong>wasted</strong> tile is the share of polls that returned <code>changed: false</code>. At a 1 s interval against a ~1 s feed it hovers around half; at 250 ms it passes 75%.',
+            'Latency is bounded by the interval: on average an event waits half an interval before anyone asks for it.'
+        ], 'accent') }}
+        {{ notes.section('Why people still use it', [
+            'It works through every proxy, firewall, corporate middlebox and serverless platform ever made, because it is just ordinary requests.',
+            'The server keeps no state per client. A thousand pollers cost the same as a thousand ordinary page views.',
+            'Failure is boring: a dropped request is simply the next one. There is nothing to reconnect.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Polling from a tab that is in the background: browsers throttle <code>setInterval</code> to once per minute or worse. Use <code>document.visibilityState</code> to pause and resume.',
+            'Send <code>since=&lt;seq&gt;</code> (as this page does) so the server can answer cheaply and you can tell useful polls from wasted ones. Better still, add an <code>ETag</code> and get a 304 — see the HTTP level.',
+            'Never let polls overlap: this page guards with an <code>inflight</code> flag. Without it a slow server gets hit harder exactly when it is struggling.'
+        ], 'warn') }}
+        {% elif spec.slug == 'long-polling' %}
+        {{ notes.section('What you are seeing', [
+            'Look at <strong>held</strong> in the wire log: the server sat on the request until a tick arrived, then answered. The client asks again the instant it gets a reply, so there is always exactly one request in flight.',
+            'Requests per minute drops to roughly the event rate. Wasted requests are only the 25 s timeouts.',
+            'Latency is near-zero: the answer leaves the moment the event exists, because the connection is already open.'
+        ], 'accent') }}
+        {{ notes.section('How the server does it', [
+            'The handler blocks on a <code>threading.Condition</code> and is woken by <code>notify_all()</code> when an event is appended. Each waiting client occupies a server thread — fine for dozens, painful for thousands (that is why async servers exist).',
+            'The 25 s timeout is deliberate: most proxies and load balancers cut idle connections at 30–60 s. Answering empty just before that keeps everything alive.',
+            'The <code>since</code> parameter makes the mechanism lossless: events that fired between two requests are delivered in a batch on the next one.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Browsers limit connections per host (6 for HTTP/1.1). One long-poll uses one slot permanently; three tabs use three.',
+            'Back off on errors. This page doubles its wait from 0.5 s to 8 s on each failure; without that, a down server gets a reconnection storm the moment it comes back.',
+            'Messaging systems built this way (early Facebook chat, Gmail) mostly moved to SSE or WebSockets once those were universally supported.'
+        ], 'warn') }}
+        {% elif spec.slug == 'sse' %}
+        {{ notes.section('What you are seeing', [
+            'One request. Everything after it arrives as plain text lines on the same open response: <code>id:</code>, <code>event:</code>, <code>data:</code>, blank line. The wire log shows them as they land.',
+            'The <code>: keep-alive</code> comment lines carry no data. They exist only so intermediaries do not close an idle stream.',
+            'After an outage, <strong>reconnects</strong> increments and the log says "browser sent Last-Event-ID automatically" — that is the browser, not this page\'s code.'
+        ], 'accent') }}
+        {{ notes.section('Why it is usually the right answer', [
+            'Built into every browser as <code>EventSource</code>: automatic reconnection, automatic replay via <code>Last-Event-ID</code>, named event types, all in about ten lines of client code.',
+            'It is still HTTP. Authentication, cookies, compression, CDN routing and logging all work unchanged. WebSockets need special handling for most of those.',
+            'Fits the vast majority of "live" features: feeds, notifications, progress bars, dashboards — anything where the server talks and the client listens.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Text only, server → client only. Binary data or client → server traffic means base64 or a separate request.',
+            'Buffering proxies silently break it: nginx needs <code>proxy_buffering off</code> or the <code>X-Accel-Buffering: no</code> header this endpoint sends.',
+            'Over HTTP/1.1 each stream takes one of the browser\'s six per-host connections. HTTP/2 multiplexes them and removes the limit.',
+            'Replay only reaches as far as the server\'s buffer (200 events here). A client that was away longer must be told to reload.'
+        ], 'warn') }}
+        {% elif spec.slug == 'websocket' %}
+        {{ notes.section('What you are seeing', [
+            'One HTTP request with <code>Upgrade: websocket</code>, then no HTTP at all — just frames with 2–6 bytes of overhead each. The bytes tile grows far slower than any of the other transports.',
+            'The pings every 5 s measure round-trip time; half of that is the latency shown. It is the lowest of the four because nothing is re-established per message.',
+            'Type in the chat: your message goes <em>up</em> the same socket, the server broadcasts it, and every connected tab gets it back. That direction is impossible on the other three.'
+        ], 'accent') }}
+        {{ notes.section('When it is worth it', [
+            'Genuinely two-way traffic at high frequency: chat, multiplayer games, collaborative editing, live cursors, trading terminals.',
+            'Binary payloads: frames can carry raw bytes, no base64.',
+            'Very high message rates where per-message HTTP overhead would dominate.'
+        ]) }}
+        {{ notes.section('What it costs you', [
+            'The browser does <strong>nothing</strong> on disconnect. The reconnect loop, backoff, and replay of missed messages in <code>lab.js</code> are all hand-written — and during the gap in this demo, events are simply lost.',
+            'It is not HTTP after the handshake: cookies are sent once, then never re-checked; there is no request/response to log, cache or retry; many proxies and CDNs need explicit configuration.',
+            'The server must hold a persistent connection per client. Flask\'s dev server manages a few; production needs an async server (gevent, uvicorn) or a dedicated gateway.',
+            'Heartbeats are your job too: without them a half-open socket looks alive for minutes.'
+        ], 'warn') }}
+        {% endif %}
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block lab_scripts %}
+<script>window.LAB_TRANSPORT = "{{ spec.slug }}";</script>
+<script src="{{ url_for('static', filename='js/lab_realtime.js') }}" defer></script>
+{% endblock %}

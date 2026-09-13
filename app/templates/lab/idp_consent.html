@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in — FakeID</title>
+    <style>
+        :root { color-scheme: light dark; }
+        body { margin:0; min-height:100vh; display:grid; place-items:center; font-family: system-ui, sans-serif; background:#1a1d2e; color:#e6e8f0; }
+        .card { background:#242840; padding: 32px; border-radius: 16px; width: min(440px, 92vw); box-shadow: 0 20px 60px #0008; }
+        .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.2rem; margin-bottom: 20px; }
+        .brand span { display:inline-grid; place-items:center; width:32px; height:32px; border-radius:8px; background:#7c5cff; }
+        .user { display:flex; align-items:center; gap:12px; padding:12px; background:#1a1d2e; border-radius:10px; margin: 16px 0; }
+        .avatar { width:40px; height:40px; border-radius:50%; background:#7c5cff; display:grid; place-items:center; font-weight:700; }
+        ul { padding-left: 1.2rem; } li { margin: 6px 0; } code { background:#0003; padding:1px 5px; border-radius:4px; font-size:.85em; }
+        .row { display:flex; gap:10px; margin-top: 20px; }
+        button { flex:1; padding: 12px; border:0; border-radius:10px; font: inherit; font-weight:700; cursor:pointer; }
+        .allow { background:#7c5cff; color:#fff; } .deny { background:#3a3f5c; color:#e6e8f0; }
+        .fine { font-size:.8rem; opacity:.7; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="brand"><span>F</span> FakeID</div>
+        <h2 style="margin:0 0 4px">Sign in to <em>{{ client }}</em></h2>
+        <p style="margin:0; opacity:.8">{{ client }} wants to access your FakeID account.</p>
+        <div class="user"><div class="avatar">A</div><div><strong>{{ user.name }}</strong><br><small>{{ user.email }}</small></div></div>
+        <p style="margin:0 0 6px">This will allow <strong>{{ client }}</strong> to:</p>
+        <ul>
+            {% for scope in scopes %}
+            <li>{% if scope == 'openid' %}Know who you are (<code>openid</code>){% elif scope == 'profile' %}See your name (<code>profile</code>){% elif scope == 'email' %}See your email address (<code>email</code>){% else %}<code>{{ scope }}</code>{% endif %}</li>
+            {% endfor %}
+        </ul>
+        <form method="POST" action="{{ url_for('lab.idp_approve') }}">
+            {% for key in ('client_id', 'redirect_uri', 'state', 'code_challenge', 'nonce', 'scope') %}
+            <input type="hidden" name="{{ key }}" value="{{ params.get(key, '') }}">
+            {% endfor %}
+            <div class="row">
+                <button type="submit" name="decision" value="deny" class="deny">Cancel</button>
+                <button type="submit" name="decision" value="allow" class="allow">Allow</button>
+            </div>
+        </form>
+        <p class="fine">You will be sent back to <code>{{ params.get('redirect_uri') }}</code>. This provider is fake and lives inside the Web Lab; the only account is Alice, already "signed in".</p>
+    </div>
+</body>
+</html>

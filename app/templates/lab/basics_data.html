@@ -1,0 +1,57 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Three fields, four encodings</h2>
+            <div class="field"><label class="field__label" for="name">name</label><input type="text" id="name" value="Ada Lovelace"></div>
+            <div class="field"><label class="field__label" for="age">age</label><input type="number" id="age" value="36"></div>
+            <div class="field"><label class="field__label" for="tags">tags (comma separated → repeated field)</label><input type="text" id="tags" value="math, engines"></div>
+            <div class="field"><label class="field__label" for="file">file (only multipart can carry it)</label><input type="file" id="file"></div>
+            <div class="btn-row">
+                <button type="button" class="btn" data-enc="query">GET ?query</button>
+                <button type="button" class="btn" data-enc="form">POST urlencoded form</button>
+                <button type="button" class="btn" data-enc="json">POST JSON</button>
+                <button type="button" class="btn" data-enc="multipart">POST multipart</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Raw body as sent</h2><span class="small muted" id="sizeMeta"></span></div>
+            <pre class="small" id="rawBody" style="max-height: 240px; overflow:auto; white-space: pre-wrap; word-break: break-all">—</pre>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">How the server read it</h2></div>
+            <p class="small" id="how"></p>
+            <pre class="small" id="parsed" style="max-height: 240px; overflow:auto">—</pre>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            '<strong>Query string</strong>: the data rides in the URL. Spaces become <code>+</code> or <code>%20</code>, everything is a string, and <code>age</code> arrives as <code>"36"</code> not <code>36</code>. Repeated keys (<code>tags=math&amp;tags=engines</code>) become a list. Visible in logs and history — never for secrets or anything large.',
+            '<strong>application/x-www-form-urlencoded</strong>: the same encoding as the query string, moved into the body. It is what a plain HTML <code>&lt;form method="post"&gt;</code> sends. Still all strings, still flat.',
+            '<strong>application/json</strong>: types survive — <code>36</code> is a number, <code>["math","engines"]</code> is a list — and nesting is free. One <code>JSON.parse</code> on the server. This is the default for APIs.',
+            '<strong>multipart/form-data</strong>: each field is a "part" with its own little headers, separated by a random boundary string. Verbose (look at the size), but the only encoding that carries a file alongside fields. Pick a file and compare.'
+        ], 'accent') }}
+        {{ notes.section('Choosing', [
+            'Reading, filtering, paging → <strong>query string</strong>. It is bookmarkable and cacheable, which is the point of GET.',
+            'JavaScript talking to your own API → <strong>JSON</strong>. Set <code>Content-Type: application/json</code> or the server will not parse it — a missing header is the number one "my POST body is empty" bug.',
+            'A classic HTML form without JavaScript → <strong>urlencoded</strong>, because that is what the browser does. Flask reads it as <code>request.form</code>.',
+            'Anything with a file → <strong>multipart</strong>. With <code>fetch</code>, pass a <code>FormData</code> object and do <em>not</em> set Content-Type yourself; the browser must generate the boundary.',
+            'Large binary uploads → send the file as the raw body (<code>Content-Type: image/png</code>) or in multipart; never base64 inside JSON, which adds a third to the size and a parse of the whole thing into memory.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'JSON has no comments, no trailing commas, no single quotes, and no <code>undefined</code>. <code>JSON.stringify</code> silently drops <code>undefined</code> values and functions.',
+            'Form data and query strings cannot express "empty list" vs "absent", or nesting, without conventions (<code>tags[]</code>, <code>user[name]</code>) that differ between frameworks.',
+            'Percent-encoding is per component: encode each value with <code>encodeURIComponent</code>, not the whole URL with <code>encodeURI</code>, or <code>&amp;</code> inside a value splits your parameters.',
+            'Servers cap body sizes (this app: 500 MB, most: a few MB). A too-large body gets <code>413</code>; a too-large URL gets <code>414</code>. Query strings above ~2 KB are asking for trouble with proxies.',
+            'Multipart parsing streams to disk for big files; JSON is parsed fully into memory. A 100 MB JSON body is 100 MB of RAM (or more) in your process.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "sending-data";</script>
+<script src="{{ url_for('static', filename='js/lab_basics.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "models/_page.html" %}
+
+{% block model_content %}
+<div class="runner">
+    <div class="runner__panel">
+        <div class="card">
+            <h2 class="h3">Camera</h2>
+            <div class="preview-frame" id="cameraFrame">
+                <video id="video" playsinline muted
+                       aria-label="Live camera preview"></video>
+            </div>
+            <canvas id="capture" hidden></canvas>
+
+            <div class="btn-row" style="margin-top: var(--space-4)">
+                <button type="button" class="btn" id="startCamera">Start camera</button>
+                <button type="button" class="btn btn--secondary" id="stopCamera" disabled>
+                    Stop
+                </button>
+            </div>
+            <p class="field__help" id="cameraHint">
+                The camera runs in your browser. Only the still frame you capture
+                is sent to the server, and only its embedding is stored.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2 class="h3">Enrol a face</h2>
+            <div class="field">
+                <label class="field__label" for="personName">Name</label>
+                <input type="text" id="personName" placeholder="e.g. Francisco"
+                       autocomplete="off" maxlength="255">
+            </div>
+            <button type="button" class="btn btn--block" id="enrol" disabled>
+                Capture and enrol
+            </button>
+            <p class="field__help">
+                Enrol the same person a few times from different angles — matching
+                gets noticeably better.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2 class="h3">Identify</h2>
+            <button type="button" class="btn btn--block" id="identify" disabled>
+                Capture and identify
+            </button>
+        </div>
+    </div>
+
+    <div class="runner__output">
+        <div class="card">
+            <h2 class="h3">Result</h2>
+            <div id="result" class="result" role="status" aria-live="polite">
+                <p class="small muted">Start the camera to begin.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card__title">
+                <h2 class="h3" style="margin:0">Enrolled people</h2>
+                <span class="badge badge--muted" id="rosterCount">0</span>
+            </div>
+            <ul class="roster" id="roster"></ul>
+            <p class="small muted" id="rosterEmpty">Nobody is enrolled yet.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block model_scripts %}
+<script src="{{ url_for('static', filename='js/webcam.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/face.js') }}" defer></script>
+{% endblock %}

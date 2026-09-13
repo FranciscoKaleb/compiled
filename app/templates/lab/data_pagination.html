@@ -1,0 +1,49 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Two ways to page</h2>
+            <div class="field"><select id="mode"><option value="offset">Offset — ?page=2 → LIMIT 10 OFFSET 10</option><option value="cursor">Cursor — ?cursor=… → WHERE (created_at, id) &lt; (?, ?)</option></select></div>
+            <div class="btn-row">
+                <button type="button" class="btn" id="first">First page</button>
+                <button type="button" class="btn" id="next" disabled>Next page →</button>
+                <button type="button" class="btn btn--danger" id="insert">Someone else inserts a row</button>
+                <button type="button" class="btn btn--secondary" id="reset">Reset data</button>
+            </div>
+            <div class="stats" style="margin-top: var(--space-4)" id="stats"></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Items seen so far</h2><span class="small muted" id="pageMeta"></span></div>
+            <div id="dupWarn"></div>
+            <div class="table-wrap" style="max-height: 360px; overflow:auto"><table class="data"><thead><tr><th>#</th><th>id</th><th>title</th><th>created</th></tr></thead><tbody id="items"></tbody></table></div>
+        </div>
+    </div>
+    {% include "lab/_sql_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Load the first page, press <strong>Someone else inserts a row</strong>, then <strong>Next page</strong>. With <strong>offset</strong>, the new row at the top pushed everything down by one, so <code>OFFSET 10</code> now starts at what used to be item 10 — which you already saw. It is highlighted as a duplicate. Delete a row instead and you would <em>skip</em> one, silently.',
+            'With <strong>cursor</strong>, the next page asks for "rows older than the last one I saw" — <code>WHERE (created_at, id) &lt; (?, ?)</code>. New rows at the top cannot shift that boundary. No duplicates, no gaps.',
+            'The cursor is just the sort key of the last row (<code>created_at|id</code>). It is opaque to the client and meaningful only to the server. The <code>id</code> tiebreaker matters: two rows with the same timestamp would otherwise be ambiguous.',
+            'Look at the SQL: offset pagination still reads and discards the skipped rows. Page 200 of an offset list makes the database read 2,000 rows to return 10.'
+        ], 'accent') }}
+        {{ notes.section('Choosing', [
+            '<strong>Cursor</strong> (a.k.a. keyset or seek pagination) for anything that changes while people read it — feeds, activity logs, message lists, "load more" buttons, APIs. Constant cost per page regardless of depth, because it uses the index.',
+            '<strong>Offset</strong> when users need to jump to an arbitrary page number or see a page count, and the data is mostly static — search results, admin tables, reports. Simple, and every framework has it built in.',
+            'The two can combine: offset within a snapshot (a fixed <code>as_of</code> timestamp), or cursor plus an approximate total count for the UI.',
+            'Cursor pagination requires a stable, unique sort order. Sorting by a non-unique column alone (<code>ORDER BY created_at</code>) is where it breaks — always add the primary key as the final tiebreaker.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Offset skips are worse than duplicates: a duplicate is visible, a skipped item just never appears. Deletions during paging cause skips.',
+            '<code>SELECT COUNT(*)</code> for the page count is itself a full scan on big tables. Cache it, estimate it, or drop the total and show "next" only.',
+            'Cursors should be encoded (base64 of the key) and validated; clients will try to edit them. Never accept raw SQL fragments or column names from the cursor.',
+            'Row-value comparison <code>(a, b) &lt; (?, ?)</code> is supported by SQLite, Postgres and MySQL 8; on older MySQL it exists but may not use the index — spell it out as <code>a &lt; ? OR (a = ? AND b &lt; ?)</code>.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "pagination";</script>
+<script src="{{ url_for('static', filename='js/lab_data.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">A to-do API: <code>/api/basics/notes</code></h2>
+            <div class="btn-row">
+                <button type="button" class="btn" data-op="list">GET list</button>
+                <button type="button" class="btn" data-op="create">POST create</button>
+                <button type="button" class="btn" data-op="get">GET one</button>
+                <button type="button" class="btn" data-op="put">PUT replace</button>
+                <button type="button" class="btn" data-op="patch">PATCH edit</button>
+                <button type="button" class="btn btn--danger" data-op="delete">DELETE</button>
+                <button type="button" class="btn btn--secondary" data-op="head">HEAD</button>
+                <button type="button" class="btn btn--secondary" data-op="options">OPTIONS</button>
+            </div>
+            <div class="field" style="margin-top: var(--space-4)"><label class="field__label" for="noteId">Note id (for GET one / PUT / PATCH / DELETE)</label><input type="number" id="noteId" value="1" min="1" style="width: 8ch"></div>
+            <div class="field"><label class="field__label" for="title">Title (for POST / PUT / PATCH)</label><input type="text" id="title" value="Water the plants"></div>
+            <div class="field"><label class="check"><input type="checkbox" id="done"> <span>done (for POST / PUT / PATCH)</span></label></div>
+            <div class="btn-row">
+                <button type="button" class="btn btn--danger btn--small" data-op="wrong">Wrong verb: DELETE the collection</button>
+                <button type="button" class="btn btn--danger btn--small" data-op="putpartial">PUT with only a title</button>
+                <button type="button" class="btn btn--secondary btn--small" id="reset">Reset data</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">The notes right now</h2><span class="small muted" id="count"></span></div>
+            <div class="table-wrap"><table class="data"><thead><tr><th>id</th><th>title</th><th>done</th></tr></thead><tbody id="notes"></tbody></table></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">The contract</h2>
+            <div class="table-wrap"><table class="data">
+                <thead><tr><th>Verb</th><th>Meaning</th><th>Safe</th><th>Idempotent</th><th>Body</th><th>Typical status</th></tr></thead>
+                <tbody>
+                <tr><td class="key">GET</td><td>read</td><td>yes</td><td>yes</td><td>no</td><td>200 / 404</td></tr>
+                <tr><td class="key">HEAD</td><td>GET without the body</td><td>yes</td><td>yes</td><td>no</td><td>200 / 404</td></tr>
+                <tr><td class="key">OPTIONS</td><td>what can I do here?</td><td>yes</td><td>yes</td><td>no</td><td>204 + Allow</td></tr>
+                <tr><td class="key">POST</td><td>create / do something</td><td>no</td><td><strong>no</strong></td><td>yes</td><td>201 + Location / 200 / 202</td></tr>
+                <tr><td class="key">PUT</td><td>replace entirely</td><td>no</td><td>yes</td><td>yes (whole thing)</td><td>200 / 204 / 201</td></tr>
+                <tr><td class="key">PATCH</td><td>change part</td><td>no</td><td>not guaranteed</td><td>yes (the changes)</td><td>200</td></tr>
+                <tr><td class="key">DELETE</td><td>remove</td><td>no</td><td>yes</td><td>no</td><td>204 / 404</td></tr>
+                </tbody></table></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            '<strong>POST create</strong> answers <code>201 Created</code> with a <code>Location</code> header pointing at the new note. Press it twice and you get two notes — POST is not idempotent, which is exactly why Level 3 needed idempotency keys.',
+            '<strong>PUT</strong> sends the <em>whole</em> note. "PUT with only a title" is rejected with <code>422</code>: a real PUT that omitted <code>done</code> would reset it — the field is not "unchanged", it is "absent". <strong>PATCH</strong> sends only the fields to change and leaves the rest.',
+            '<strong>DELETE</strong> returns <code>204 No Content</code> and an empty body. Press it again on the same id: <code>404</code>. Idempotent means the <em>state</em> is the same after one call or five — not that the response is.',
+            '<strong>HEAD</strong> gives you the headers a GET would — <code>X-Total-Count</code>, <code>Content-Length</code> — with no body: cheap existence and size checks. <strong>OPTIONS</strong> lists the verbs the URL accepts in <code>Allow</code>; the wrong verb gets <code>405</code> with the same header.'
+        ], 'accent') }}
+        {{ notes.section('Safe and idempotent, precisely', [
+            '<strong>Safe</strong> = read-only from the client\'s point of view. GET, HEAD, OPTIONS. Browsers prefetch safe requests, caches store them, crawlers issue them freely. A GET that deletes something will be deleted by a crawler.',
+            '<strong>Idempotent</strong> = doing it N times leaves the server in the same state as doing it once. All safe methods, plus PUT and DELETE. Clients and proxies may <em>retry</em> idempotent requests automatically after a timeout; they must not retry POST.',
+            'PATCH is not idempotent in general (<code>{"count": "+1"}</code>), though a PATCH that sets absolute values is. Document which yours is.',
+            'These are <em>promises</em> the server makes, not behaviours HTTP enforces. Nothing stops you deleting on GET — the ecosystem just assumes you did not.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'HTML forms can only GET and POST. PUT/PATCH/DELETE from a form need JavaScript (<code>fetch</code>) or a <code>_method</code> override field that the framework rewrites.',
+            'A 404 on DELETE is arguably fine (already gone = goal achieved); many APIs return 204 either way. Pick one and be consistent.',
+            'Use plural nouns for collections (<code>/notes</code>, <code>/notes/7</code>) and let the verb carry the action. <code>/getNotes</code>, <code>/deleteNote?id=7</code> are RPC in HTTP clothing and break every assumption above.',
+            'After a 201, return the created object <em>and</em> Location. Clients that only want the id read the header; clients rendering the result read the body — no second request either way.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "methods";</script>
+<script src="{{ url_for('static', filename='js/lab_basics.js') }}" defer></script>
+{% endblock %}

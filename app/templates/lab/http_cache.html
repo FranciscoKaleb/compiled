@@ -1,0 +1,54 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Fetch the same document three ways</h2>
+            <div class="stack">
+                <div>
+                    <div class="btn-row"><button type="button" class="btn" data-mode="none">1 · No caching</button><span class="small mono muted">Cache-Control: no-store</span></div>
+                    <p class="field__help">Every click is a full round trip and a full body. The baseline.</p>
+                </div>
+                <div>
+                    <div class="btn-row"><button type="button" class="btn" data-mode="etag">2 · Revalidate with ETag</button><span class="small mono muted">ETag + If-None-Match → 304</span></div>
+                    <p class="field__help">The client remembers the ETag and asks "has it changed?". When it hasn't, the server answers <code>304 Not Modified</code> with <strong>no body</strong>.</p>
+                </div>
+                <div>
+                    <div class="btn-row"><button type="button" class="btn" data-mode="maxage">3 · Browser cache, max-age=10</button><span class="small mono muted">Cache-Control: max-age=10</span></div>
+                    <p class="field__help">For ten seconds the browser does not contact the server at all — the wire log shows nothing, and transfer size reads 0.</p>
+                </div>
+            </div>
+            <hr>
+            <div class="btn-row"><button type="button" class="btn btn--secondary btn--small" id="bump">Change the document on the server</button></div>
+            <p class="field__help">Bumps its version, so the next ETag revalidation comes back <code>200</code> with a new body.</p>
+        </div>
+        <div class="card"><h2 class="h3">Numbers</h2><div class="stats" id="stats"></div></div>
+        <div class="card"><h2 class="h3">Last response</h2><pre id="last" class="small" style="max-height: 220px; overflow:auto">—</pre></div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Mode 1 always costs a request <em>and</em> a body. Mode 2 costs a request but, when nothing changed, a 0-byte body — the 304 tile counts those. Mode 3 costs nothing at all for ten seconds: no line appears in the wire log because no request left the browser.',
+            'This page does the ETag revalidation itself (<code>cache: no-store</code> plus a manual <code>If-None-Match</code>) so you can <em>see</em> the 304. Normally the browser does it invisibly and hands your code a 200 from its cache.',
+            'A 304 is detected from <code>r.status</code>; a cache hit is detected from the Resource Timing API (<code>transferSize === 0</code>). Those are the only two windows JavaScript has into caching.'
+        ], 'accent') }}
+        {{ notes.section('The vocabulary', [
+            '<code>Cache-Control: no-store</code> — never keep a copy. For personal or fast-changing data.',
+            '<code>Cache-Control: no-cache</code> — confusingly, <em>do</em> keep a copy, but always revalidate before using it. Pairs with <code>ETag</code>. This is what mode 2 sends.',
+            '<code>Cache-Control: max-age=N</code> — use the copy for N seconds without asking. Add <code>immutable</code> for content-hashed assets (<code>app.3f9a1c.js</code>) and set a year.',
+            '<code>ETag</code> is a version fingerprint; <code>Last-Modified</code> / <code>If-Modified-Since</code> is the older, second-granularity equivalent.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'An ETag must change whenever the bytes change. Hashing the serialised body (as here) is the safe way; a database <code>updated_at</code> is a common shortcut that misses changes elsewhere.',
+            'Caching applies per URL. Query parameters create new cache keys — <code>?t=123</code> is the classic cache-buster, and also the classic way to accidentally defeat caching.',
+            'Shared caches (CDNs) obey <code>public</code>/<code>private</code>. A user-specific response marked <code>public</code> can be served to someone else.',
+            'A CDN in front of you adds a second cache layer with its own rules; <code>Vary</code> tells it which request headers change the response.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "caching";</script>
+<script src="{{ url_for('static', filename='js/lab_http.js') }}" defer></script>
+{% endblock %}

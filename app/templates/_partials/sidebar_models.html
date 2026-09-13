@@ -1,0 +1,30 @@
+{# One sidebar, generated from the registry. Adding a model no longer means
+   hand-editing a 25-item link list. #}
+<nav class="sidebar" id="sidebar" aria-label="Models">
+    <p class="sidebar__title">Models</p>
+
+    {% for key, title, description, specs in categories %}
+    <div class="sidebar__group">
+        <button type="button" class="sidebar__toggle" data-group="{{ key }}"
+                aria-expanded="{{ 'true' if specs | selectattr('slug', 'equalto', active) | list else 'false' }}">
+            <span>{{ title }}</span>
+            <span class="sidebar__chevron" aria-hidden="true">›</span>
+        </button>
+        <div class="sidebar__items">
+            {% for spec in specs %}
+            <a href="{{ spec.url }}"
+               {% if spec.slug == active %}aria-current="page"{% endif %}>{{ spec.title }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="sidebar__footer">
+        <div class="cache-bar">
+            <span id="cacheStatus">Models load on first use.</span>
+            <button type="button" class="btn btn--secondary btn--small" id="clearCache">
+                Free memory
+            </button>
+        </div>
+    </div>
+</nav>

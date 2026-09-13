@@ -1,0 +1,50 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Is the page alive?</h2>
+            <div class="ticker"><span class="ticker__price" id="clock" style="font-size: var(--text-xl)">--:--:--</span><span class="ticker__seq">updates every 100 ms</span></div>
+            <div class="score-list__bar" style="height: 10px; margin: var(--space-3) 0"><span id="pulse" style="width: 0%; transition: none"></span></div>
+            <div class="btn-row"><button type="button" class="btn btn--secondary btn--small" id="clickMe">Click me while it runs</button><span class="small muted" id="clicks">0 clicks registered</span></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">The work</h2>
+            <div class="field"><label class="field__label" for="n">Iterations</label>
+                <div class="range-row"><input type="range" id="n" min="10" max="120" step="10" value="50"><output for="n">50 M</output></div></div>
+            <div class="btn-row">
+                <button type="button" class="btn btn--danger" id="runMain">Run on the main thread</button>
+                <button type="button" class="btn" id="runWorker">Run in a Web Worker</button>
+            </div>
+            <div class="score-list__bar" style="height: 10px; margin: var(--space-3) 0"><span id="progress" style="width: 0%"></span></div>
+            <div class="stats" id="stats"></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'The clock, the pulse bar and your clicks all live on the <strong>main thread</strong> — the one thread the browser has for running your JavaScript <em>and</em> painting the page <em>and</em> handling input.',
+            '<strong>Run on the main thread</strong>: the loop hogs that thread. The clock stops, the bar freezes, clicks are queued and all fire at once when it finishes. The browser may show a "page unresponsive" dialog. Note that the progress bar cannot update either — there is no moment for it to paint.',
+            '<strong>Run in a Web Worker</strong>: identical loop, different thread. The clock ticks, clicks register immediately, and progress messages arrive via <code>postMessage</code> and paint as they come.',
+            'The total time is roughly the same either way. Workers do not make work faster; they stop it from blocking.'
+        ], 'accent') }}
+        {{ notes.section('How workers work', [
+            'A worker is a separate JavaScript thread with its own global scope. It has no <code>document</code>, no <code>window</code>, no DOM — only <code>self</code>, timers, <code>fetch</code>, IndexedDB and message passing.',
+            'Communication is <code>postMessage</code> both ways. Data is <em>structured-cloned</em> (copied) unless you transfer it: <code>postMessage(buffer, [buffer])</code> hands over an <code>ArrayBuffer</code> with no copy, leaving the sender with an empty one.',
+            '<code>SharedArrayBuffer</code> + <code>Atomics</code> allow true shared memory between threads, but require the page to opt into cross-origin isolation headers.',
+            'Worker code must come from a separate URL (here <code>/static/js/lab_worker.js</code>) or a Blob URL; module workers (<code>type: "module"</code>) can <code>import</code>.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Spawning a worker costs a few milliseconds and some memory. For lots of small tasks, keep a worker (or a pool) alive and feed it, rather than creating one per task.',
+            'Anything you send is copied. Sending a 50 MB image to a worker and back is two 50 MB copies — transfer the buffer instead.',
+            'Workers cannot touch the DOM, so pattern is: compute in the worker, post a compact result, render on the main thread. <code>OffscreenCanvas</code> lets a worker draw directly for the heavy graphics cases.',
+            'Errors inside a worker surface via <code>worker.onerror</code>, not the page\'s <code>try/catch</code>. Always attach a handler.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "web-workers";</script>
+<script src="{{ url_for('static', filename='js/lab_browser.js') }}" defer></script>
+{% endblock %}

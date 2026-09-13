@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FakeID — request rejected</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#1a1d2e;color:#e6e8f0}.card{background:#242840;padding:32px;border-radius:16px;width:min(520px,92vw)}h2{color:#ff7b7b;margin:0 0 12px}li{margin:6px 0}a{color:#b8a8ff}</style></head>
+<body><div class="card">
+    <h2>Request rejected — and not redirected</h2>
+    <p>FakeID refused this authorization request:</p>
+    <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    <p style="opacity:.8">A provider must show an error <em>here</em> rather than redirect to an unregistered <code>redirect_uri</code>. Redirecting anyway is how authorization codes get delivered to attackers.</p>
+    <p><a href="{{ url_for('lab.oauth_flow', state=state) }}">View this flow's log as JSON</a> · <a href="{{ url_for('lab.oauth') }}">Back to the lab</a></p>
+</div></body></html>

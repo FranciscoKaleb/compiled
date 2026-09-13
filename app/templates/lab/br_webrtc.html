@@ -1,0 +1,50 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Room</h2>
+            <div class="field"><label class="field__label" for="room">Room name — open this page in a second tab with the same name</label><input type="text" id="room" value="lab-demo" autocomplete="off"></div>
+            <div class="field"><label class="check"><input type="checkbox" id="synthetic" checked> <span>Use a synthetic video (no camera permission needed)</span></label>
+                <p class="field__help">Untick to use your real camera. With two tabs on one machine, the synthetic pattern makes it obvious which side is which.</p></div>
+            <div class="btn-row"><button type="button" class="btn" id="join">Join</button><button type="button" class="btn btn--secondary" id="leave" disabled>Leave</button></div>
+        </div>
+        <div class="compare" style="grid-template-columns: 1fr 1fr">
+            <div class="compare__card"><div class="card__title"><h3 style="margin:0">Local</h3><span class="small muted" id="localState">—</span></div><video id="local" playsinline muted autoplay style="width:100%; background:#000; border-radius: 8px; aspect-ratio: 4/3"></video></div>
+            <div class="compare__card"><div class="card__title"><h3 style="margin:0">Remote</h3><span class="small muted" id="remoteState">—</span></div><video id="remote" playsinline autoplay style="width:100%; background:#000; border-radius: 8px; aspect-ratio: 4/3"></video></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Where do the bytes go?</h2>
+            <div class="stats" id="stats"></div>
+            <p class="field__help" style="margin-top: var(--space-3)">Signalling bytes went through this server over the WebSocket. Media bytes went peer-to-peer over the ICE path shown — the server never saw them. Compare the two numbers after a minute.</p>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Two browsers cannot connect to each other without first learning the other\'s address and media capabilities. That exchange is <strong>signalling</strong>, and WebRTC leaves it to you — here it is the WebSocket from Level 1, relaying messages between two peers in a room.',
+            'The wire log shows the whole handshake: an <strong>SDP offer</strong> (what I can send and receive), an <strong>SDP answer</strong>, and a trickle of <strong>ICE candidates</strong> (addresses I might be reachable at). A dozen small messages, then silence from the server.',
+            'Once <code>connectionState</code> reaches <code>connected</code>, video flows directly between the tabs. The <em>media bytes</em> counter comes from <code>getStats()</code>; the <em>signalling bytes</em> counter is everything the server relayed. The ratio is the point of the page.',
+            'The synthetic stream is a canvas with a moving pattern, captured with <code>canvas.captureStream()</code> — a real video track without a camera.'
+        ], 'accent') }}
+        {{ notes.section('The moving parts', [
+            '<strong>RTCPeerConnection</strong>: the connection object. You add tracks, create an offer/answer, feed it the other side\'s description and candidates.',
+            '<strong>ICE</strong> (Interactive Connectivity Establishment): tries every address pair — local LAN addresses, then a public address discovered via a <strong>STUN</strong> server, then, if NAT defeats both, a <strong>TURN</strong> relay. Two tabs on one machine connect on <code>host</code> candidates; the STUN server listed is never needed here.',
+            '<strong>SDP</strong> is the ugly text blob describing codecs, encryption keys and transport. You pass it around; you rarely edit it.',
+            'Media is always encrypted (SRTP/DTLS). There is no unencrypted WebRTC.',
+            '<strong>RTCDataChannel</strong> is the same machinery for arbitrary data — peer-to-peer file transfer and game state use it.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Across the real internet, 10–20% of connections cannot go direct (symmetric NATs, corporate firewalls) and need a TURN server — which relays the media and costs bandwidth. "Serverless" video still needs servers.',
+            'Beyond a few participants, peer-to-peer meshes explode (n² streams). Group calls use an SFU (selective forwarding unit) — a server that receives everyone\'s stream once and forwards. That is what Meet, Zoom and Discord do.',
+            'Signalling is unspecified on purpose; you must secure it yourself (authentication, room membership). This demo lets anyone join any room by name.',
+            '<code>getUserMedia</code> needs a secure context and a user permission prompt. Autoplay of <em>unmuted</em> remote video may be blocked until the user interacts — the local preview is muted for this reason.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "webrtc";</script>
+<script src="{{ url_for('static', filename='js/lab_browser.js') }}" defer></script>
+{% endblock %}

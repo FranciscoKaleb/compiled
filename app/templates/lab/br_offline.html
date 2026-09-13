@@ -1,0 +1,55 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0"><span class="status-dot" id="swDot"></span>Service worker</h2><span class="small muted" id="swState">checking…</span></div>
+            <div class="btn-row" style="margin-top: var(--space-3)">
+                <button type="button" class="btn" id="install">Install</button>
+                <button type="button" class="btn btn--secondary" id="uninstall">Uninstall & clear cache</button>
+            </div>
+            <p class="field__help" style="margin-top: var(--space-3)">Then: DevTools → Network → tick <strong>Offline</strong> → reload this page. It loads anyway, from the cache the worker filled at install. Try the same on any other lab page and it fails.</p>
+            <div class="alert alert--warn" style="margin-top: var(--space-3)" id="online">You are online.</div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Fetch a slow API through the worker</h2>
+            <p class="small muted">The endpoint takes 400 ms and returns the server's clock, so you can tell a fresh answer from a cached one.</p>
+            <div class="btn-row">
+                <button type="button" class="btn btn--small" data-strategy="network-only">network-only</button>
+                <button type="button" class="btn btn--small" data-strategy="cache-first">cache-first</button>
+                <button type="button" class="btn btn--small" data-strategy="network-first">network-first</button>
+                <button type="button" class="btn btn--small" data-strategy="stale-while-revalidate">stale-while-revalidate</button>
+            </div>
+            <div class="ticker" style="margin-top: var(--space-4)"><span class="ticker__price mono" id="serverTime" style="font-size: var(--text-xl)">—</span><span class="ticker__seq" id="fetchMeta"></span></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'A service worker is a script the browser runs <em>between</em> your page and the network, even when no tab is open. Every request in its scope passes through its <code>fetch</code> handler, which can answer from a cache, the network, or invent a response.',
+            'At <strong>install</strong> it precaches the "app shell" — this page and its CSS/JS. That is why the page reloads offline. The lines marked <code>SW</code> in the wire log are the worker telling the page which source it used.',
+            '<strong>cache-first</strong>: after the first call the clock never changes — you are reading a stored answer. <strong>network-first</strong>: fresh while online, falls back to the last good answer offline. <strong>stale-while-revalidate</strong>: the old answer instantly, and a fresh one lands in the cache for <em>next</em> time. <strong>network-only</strong>: honest, and dead offline.',
+            'Clear the cache and go offline: cache-first and network-first now fail too. A strategy is only as good as what has been cached.'
+        ], 'accent') }}
+        {{ notes.section('Choosing a strategy', [
+            '<strong>Cache-first</strong> for things that never change under one URL: hashed assets (<code>app.3f9a1c.js</code>), fonts, icons.',
+            '<strong>Network-first</strong> for data that must be fresh when possible but where stale is better than nothing: articles, product pages, a timeline.',
+            '<strong>Stale-while-revalidate</strong> for data where instant matters more than perfectly current: avatars, feeds, config. It is what most "feels instant" apps do.',
+            '<strong>Network-only</strong> for anything that must never be stale or is not safe to cache: payments, auth, anything personal.',
+            'Libraries like Workbox package these strategies with routing and cache expiry so you do not hand-write the handler above.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Scope is by URL path: a worker at <code>/lab/sw.js</code> can control <code>/lab/…</code> and below, never <code>/tools</code>. Here it is deliberately registered with scope <code>/lab/offline</code> so it cannot interfere with the other demos.',
+            'Service workers need HTTPS — except <code>localhost</code>, which is why this works on your machine. Deploy without TLS and nothing registers.',
+            'Updating a worker is a lifecycle: the new one installs, then <em>waits</em> until every tab using the old one closes, unless you call <code>skipWaiting()</code> (as this one does). Version your cache name and delete old caches on <code>activate</code>.',
+            'Do not cache POST responses or anything with <code>Set-Cookie</code>. And cached HTML with a CSRF token embedded is a stale token.',
+            'A page controlled by a worker that caches aggressively can be impossible to "fix" for users who never clear site data. Keep a kill switch: a worker version that just unregisters itself.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "offline";</script>
+<script src="{{ url_for('static', filename='js/lab_browser.js') }}" defer></script>
+{% endblock %}

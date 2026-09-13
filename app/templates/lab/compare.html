@@ -1,0 +1,57 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+
+{% block lab_content %}
+<div class="lab-grid lab-grid--3" style="grid-template-columns: minmax(0, 2.3fr) minmax(260px, 0.9fr)">
+    <div class="stack">
+        <div class="card">
+            <div class="btn-row">
+                <button type="button" class="btn" id="startAll">Start all four</button>
+                <button type="button" class="btn btn--secondary" id="stopAll" disabled>Stop</button>
+                <button type="button" class="btn btn--danger" id="outage" disabled>Simulate 8 s outage</button>
+                <button type="button" class="btn btn--secondary" id="publish" disabled>Inject an event now</button>
+                <button type="button" class="btn btn--secondary" id="reset">Reset counters</button>
+            </div>
+        </div>
+        <div class="compare" id="compare"></div>
+        <div class="card">
+            <h2 class="h3">Decision table</h2>
+            <div class="table-wrap">
+            <table class="data">
+                <thead><tr><th>Transport</th><th>Requests</th><th>Latency</th><th>Server push</th><th>Client push</th><th>Reconnect</th><th>Use when</th></tr></thead>
+                <tbody>
+                    <tr><td class="key">Short polling</td><td>One per interval, mostly empty</td><td>Up to a full interval</td><td>No</td><td>Normal requests</td><td>Nothing to reconnect</td><td>Rare changes, hostile networks, simplest possible server</td></tr>
+                    <tr><td class="key">Long polling</td><td>One per event (or timeout)</td><td>Near-instant</td><td>Effectively yes</td><td>Normal requests</td><td>Just ask again</td><td>Real-time on infrastructure that blocks streaming</td></tr>
+                    <tr><td class="key">SSE</td><td>One, ever</td><td>Near-instant</td><td>Yes</td><td>Normal requests</td><td>Automatic, with replay via Last-Event-ID</td><td>Feeds, notifications, progress — most "live" pages</td></tr>
+                    <tr><td class="key">WebSocket</td><td>One handshake</td><td>Lowest</td><td>Yes</td><td>Yes, on the same socket</td><td>Manual (your code)</td><td>Chat, games, collaborative editing — anything two-way</td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <aside class="lab-notes">
+        <div class="note-columns">
+        {{ notes.section('How to run the comparison', [
+            'Press <strong>Start all four</strong> and leave it for a full minute. Requests per minute settle to roughly: polling 60, long polling ≈ the event rate, SSE 1, WebSocket 1.',
+            'Press <strong>Inject an event now</strong> and watch the prices: all four update, but the polling card lags by up to a second — that is the interval, not the network.',
+            'Press <strong>Simulate outage</strong>. Watch who notices first (long polling and WebSocket, immediately), who never notices (polling — it just fails quietly), and who recovers without any code (SSE).'
+        ], 'accent') }}
+        {{ notes.section('Reading the numbers', [
+            '<strong>Wasted</strong> only applies to the request/response transports — a stream cannot waste a request it never made.',
+            '<strong>Bytes</strong> is estimated: JavaScript cannot see raw headers, so ~400 B per request and ~240 B per response are assumed. The ratio between transports is what matters, not the absolute values.',
+            '<strong>Latency</strong> is server timestamp to browser receipt. Both clocks are this machine, so it is honest here; across the internet you would need a round-trip measurement like the WebSocket card uses.'
+        ]) }}
+        {{ notes.section('The honest summary', [
+            'Default to <strong>SSE</strong> for anything where the server talks and the client listens. It is the least code, the least infrastructure, and the browser handles failure for you.',
+            'Reach for <strong>WebSockets</strong> only when the client must push frequently too, or you need binary frames. You take on reconnection, heartbeats and replay yourself.',
+            '<strong>Long polling</strong> is the fallback when a proxy or platform forbids streaming responses. <strong>Short polling</strong> is fine when changes are rare and simplicity wins.'
+        ], 'warn') }}
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block lab_scripts %}
+<script src="{{ url_for('static', filename='js/lab_compare.js') }}" defer></script>
+{% endblock %}

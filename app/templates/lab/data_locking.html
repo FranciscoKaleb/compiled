@@ -1,0 +1,63 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Protection</h2>
+            <select id="mode">
+                <option value="none">None — last writer wins</option>
+                <option value="optimistic" selected>Optimistic — version column, UPDATE … WHERE version = ?</option>
+                <option value="pessimistic">Pessimistic — take a 30 s lease before editing</option>
+            </select>
+            <div class="btn-row" style="margin-top: var(--space-3)"><button type="button" class="btn btn--secondary btn--small" id="reset">Reset the row</button></div>
+            <div class="stats" style="margin-top: var(--space-4)" id="truth"></div>
+        </div>
+        <div class="compare" style="grid-template-columns: 1fr 1fr">
+            {% for who in ('A', 'B') %}
+            <div class="compare__card">
+                <div class="card__title"><h3 style="margin:0">Editor {{ who }}</h3><span class="small muted" id="state{{ who }}">not loaded</span></div>
+                <button type="button" class="btn btn--secondary btn--small" data-load="{{ who }}">Load the row</button>
+                <div class="compare__row"><span>loaded version</span><span id="ver{{ who }}">—</span></div>
+                <div class="field" style="margin:0"><label class="field__label" for="bal{{ who }}">Balance</label><input type="number" id="bal{{ who }}" value="" disabled></div>
+                <div class="btn-row">
+                    <button type="button" class="btn btn--small" data-lock="{{ who }}" hidden>Lock</button>
+                    <button type="button" class="btn btn--small" data-save="{{ who }}" disabled>Save</button>
+                </div>
+                <div id="msg{{ who }}"></div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="card"><h2 class="h3">Try this</h2>
+            <ol class="small muted" style="padding-left: 1.2rem; margin:0">
+                <li>Load the row in <strong>both</strong> editors.</li>
+                <li>In A set 900 and Save. In B set 1100 and Save.</li>
+                <li>With <em>None</em>, B wins and A's change is gone with no warning. With <em>Optimistic</em>, B gets a 409 and must reload. With <em>Pessimistic</em>, B could not even Lock while A held it.</li>
+            </ol></div>
+    </div>
+    {% include "lab/_sql_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'The <strong>lost update</strong>: A reads balance 1000, B reads 1000, A writes 900, B writes 1100. B never saw A\'s write, so it is gone — the database happily executed both statements. Nothing failed; that is what makes it dangerous.',
+            '<strong>Optimistic</strong>: every save is <code>UPDATE … SET balance=?, version=version+1 WHERE id=1 AND version=?</code> with the version the editor <em>read</em>. If someone saved in between, the WHERE matches zero rows, the driver reports <code>rowcount 0</code>, and the server returns <code>409 Conflict</code>. Watch the SQL panel: the check is inside the UPDATE itself, so there is no race between checking and writing.',
+            '<strong>Pessimistic</strong>: B cannot even get the lock while A holds it (<code>423 Locked</code>). Saving releases the lease. The lease has a 30 s timeout so a closed tab cannot hold the row hostage forever.'
+        ], 'accent') }}
+        {{ notes.section('Which to use', [
+            '<strong>Optimistic</strong> is the default for web apps. Conflicts are rare, checking is free, no state to leak. Cost: when a conflict happens the user must reload and redo. Send the version to the client (a hidden field, an <code>ETag</code>) and back again.',
+            '<strong>Pessimistic</strong> when redoing work is expensive or impossible — a long document edit, a booking form, an admin fixing a record — and users expect "someone else is editing this".',
+            'Real databases have <code>SELECT … FOR UPDATE</code>, which locks the row inside a transaction. That only helps within one transaction; a web request cannot hold a transaction open across two page loads, which is why the <em>lease</em> pattern (a lock row with an expiry) is what apps actually build. SQLite has no FOR UPDATE at all — hence the lease here.',
+            'Many "conflicts" can be avoided outright by writing deltas instead of values: <code>UPDATE … SET balance = balance - 100</code> is atomic and needs no version.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'The version check must be in the same statement as the write (or the same transaction with the row locked). A separate <code>SELECT version</code> followed by <code>UPDATE</code> re-creates the race you are trying to close.',
+            'SQLAlchemy can do this for you: <code>__mapper_args__ = {"version_id_col": version}</code> raises <code>StaleDataError</code> on a lost update. Django has <code>select_for_update()</code>; Rails has <code>lock_version</code>.',
+            'Leases need expiry <em>and</em> a way to extend them (a heartbeat) for legitimately long edits, or users lose work at second 31.',
+            'Optimistic locking says nothing about <em>merging</em>. A 409 means "show the user both versions and let them decide" — or, for text, a three-way merge. Auto-retrying the write is just a lost update with extra steps.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "locking";</script>
+<script src="{{ url_for('static', filename='js/lab_data.js') }}" defer></script>
+{% endblock %}

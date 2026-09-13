@@ -1,0 +1,69 @@
+{% extends "tools/_page.html" %}
+{% import "_partials/controls.html" as controls %}
+
+{% block tool_content %}
+<div class="runner">
+    <div class="runner__panel">
+        <div class="card">
+            <form id="toolForm" data-endpoint="{{ spec.url }}/run" data-slug="{{ spec.slug }}"
+                  data-render="{{ spec.render }}" data-input="{{ spec.input }}"
+                  enctype="multipart/form-data">
+
+                {% if spec.input == 'file' %}
+                <div class="field">
+                    <span class="field__label">File</span>
+                    <label class="dropzone">
+                        <input type="file" name="file" accept="{{ spec.accept }}" required aria-label="File">
+                        <span class="dropzone__name">Drop a file or click to choose</span>
+                        {% if spec.hint %}<span class="dropzone__hint">{{ spec.hint }}</span>{% endif %}
+                    </label>
+                </div>
+                {% elif spec.input == 'files' %}
+                <div class="field">
+                    <span class="field__label">Files</span>
+                    <label class="dropzone">
+                        <input type="file" name="files" accept="{{ spec.accept }}" multiple required aria-label="Files">
+                        <span class="dropzone__name">Drop files or click to choose</span>
+                        {% if spec.hint %}<span class="dropzone__hint">{{ spec.hint }}</span>{% endif %}
+                    </label>
+                </div>
+                {% endif %}
+
+                {{ controls.render(spec.fields) }}
+
+                <button type="submit" class="btn btn--block">{{ spec.button }}</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="runner__output">
+        {% if spec.render in ('image', 'video') and spec.input in ('file', 'files') %}
+        <div class="preview-pair">
+            <div>
+                <div class="preview-frame" id="inputPreview"><p class="preview-frame__empty">Your file</p></div>
+                <p class="preview-caption">Input</p>
+            </div>
+            <div>
+                <div class="preview-frame" id="outputPreview"><p class="preview-frame__empty">The result appears here</p></div>
+                <p class="preview-caption">Output</p>
+            </div>
+        </div>
+        {% elif spec.render in ('image', 'video') %}
+        <div class="preview-frame" id="outputPreview"><p class="preview-frame__empty">The result appears here</p></div>
+        {% elif spec.input in ('file', 'files') and spec.accept.startswith('image') %}
+        <div class="preview-frame" id="inputPreview"><p class="preview-frame__empty">Your file</p></div>
+        {% endif %}
+
+        <div class="card">
+            <h2 class="h3">Result</h2>
+            <div id="result" class="result" role="status" aria-live="polite">
+                <p class="small muted">{{ spec.blurb }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block tool_scripts %}
+<script src="{{ url_for('static', filename='js/tools.js') }}" defer></script>
+{% endblock %}

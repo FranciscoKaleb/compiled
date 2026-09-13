@@ -1,0 +1,59 @@
+{% extends "models/_page.html" %}
+
+{% block model_content %}
+<div class="runner">
+    <div class="runner__panel">
+        <div class="card">
+            <form id="flowForm" enctype="multipart/form-data">
+                <div class="field">
+                    <span class="field__label">Video</span>
+                    <label class="dropzone">
+                        <input type="file" name="video" accept="video/*" required
+                               aria-label="Video to analyse">
+                        <span class="dropzone__name">Drop a video or click to choose</span>
+                        <span class="dropzone__hint">MP4, AVI, MOV or WebM</span>
+                    </label>
+                </div>
+                <p class="field__help">
+                    The first 180 frames are processed, then played back here.
+                    A short clip works best.
+                </p>
+                <button type="submit" class="btn btn--block">Trace the motion</button>
+            </form>
+        </div>
+
+        <div class="card" id="playbackCard" hidden>
+            <h2 class="h3">Playback</h2>
+            <div class="btn-row">
+                <button type="button" class="btn btn--secondary btn--small" id="playPause">
+                    Pause
+                </button>
+                <button type="button" class="btn btn--secondary btn--small" id="restart">
+                    Restart
+                </button>
+            </div>
+            <div class="field" style="margin-top: var(--space-4)">
+                <label class="field__label" for="scrub">Frame</label>
+                <div class="range-row">
+                    <input type="range" id="scrub" min="0" max="0" value="0">
+                    <output for="scrub">0</output>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="runner__output">
+        <div class="card">
+            <div class="preview-frame" id="flowFrame">
+                <p class="preview-frame__empty">The traced video appears here.</p>
+            </div>
+            <div id="result" class="result" role="status" aria-live="polite"
+                 style="margin-top: var(--space-4)"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block model_scripts %}
+<script src="{{ url_for('static', filename='js/track_flow.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Same JSON, three encodings</h2>
+            <div class="btn-row">
+                <button type="button" class="btn" data-encoding="identity">identity (none)</button>
+                <button type="button" class="btn" data-encoding="gzip">gzip</button>
+                <button type="button" class="btn" data-encoding="br">brotli</button>
+                <button type="button" class="btn btn--secondary" id="runAll">Run all three</button>
+            </div>
+            <p class="field__help" style="margin-top: var(--space-3)">Your code never sees the compression: <code>response.json()</code> just works. The sizes below come from the Resource Timing API.</p>
+        </div>
+        <div class="card">
+            <h2 class="h3">Results</h2>
+            <div class="table-wrap"><table class="data"><thead><tr><th>Encoding</th><th>On the wire</th><th>Decoded</th><th>Saved</th><th>Time</th></tr></thead><tbody id="rows"></tbody></table></div>
+            <div id="bars" class="stack" style="margin-top: var(--space-4)"></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            '<code>encodedBodySize</code> is what crossed the network; <code>decodedBodySize</code> is what your code received. The server also sends <code>X-Uncompressed-Length</code> as a cross-check.',
+            'Text with repetition — JSON keys, HTML tags, CSS property names — compresses 5–15×. This payload is deliberately repetitive to show the upper end; real API responses land around 5–8×.',
+            'Brotli usually beats gzip by 10–20% on text at the same speed, and much more at its slowest settings, which is why CDNs pre-compress static assets with brotli level 11.'
+        ], 'accent') }}
+        {{ notes.section('How negotiation really works', [
+            'The browser announces what it can decode: <code>Accept-Encoding: gzip, deflate, br, zstd</code>. The server picks one, compresses, and labels the response with <code>Content-Encoding</code>. This demo forces the choice with a query parameter so you can compare.',
+            '<code>Vary: Accept-Encoding</code> tells every cache in between that one URL now has several valid bodies, keyed on that header. Forget it and a gzip body can be served to a client that asked for identity.',
+            'Compression is normally done by the reverse proxy (nginx <code>gzip on;</code>, Caddy does it by default), not by application code. Flask only does it here for the demonstration.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Never compress already-compressed formats: JPEG, PNG, MP4, ZIP, WOFF2. You burn CPU to gain nothing, sometimes a few bytes negative.',
+            'Compression + streaming: gzip buffers internally; flush after each event or your SSE stream stalls. Most servers disable compression for <code>text/event-stream</code>.',
+            'Security: compressing secrets alongside attacker-controlled input leaks information (BREACH). Do not compress responses that mix CSRF tokens with reflected user text.',
+            'Very small responses (under ~1 KB) can grow when compressed; servers apply a minimum-length threshold.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "compression";</script>
+<script src="{{ url_for('static', filename='js/lab_http.js') }}" defer></script>
+{% endblock %}

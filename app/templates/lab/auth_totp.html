@@ -1,0 +1,64 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">1 · Enrol</h2>
+            <p class="small muted">Generates a secret and shows it as a QR code. Scan it with Google Authenticator, Authy, 1Password, Aegis — any TOTP app.</p>
+            <button type="button" class="btn" id="enrol">Generate a new secret</button>
+            <div id="enrolBox" hidden style="margin-top: var(--space-4)">
+                <div class="preview-frame" style="min-height:0; padding: var(--space-3)"><img id="qr" alt="QR code for the authenticator app" style="image-rendering: pixelated; width: 220px"></div>
+                <p class="small mono" style="margin-top: var(--space-3); word-break: break-all">secret: <span id="secret"></span></p>
+                <p class="small mono muted" style="word-break: break-all" id="uri"></p>
+            </div>
+        </div>
+        <div class="card">
+            <h2 class="h3">2 · Verify</h2>
+            <form id="verifyForm" class="btn-row" style="align-items:flex-end">
+                <div class="field" style="margin:0"><label class="field__label" for="code">Six-digit code from your app</label><input type="text" id="code" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" placeholder="123 456" autocomplete="one-time-code" style="font-size: var(--text-xl); letter-spacing: .15em; width: 10ch"></div>
+                <button type="submit" class="btn">Verify</button>
+            </form>
+            <div id="verdict" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">3 · What the server computes</h2>
+            <p class="small muted">Cheating on purpose: the server shows its own current code so you can compare with your phone. In production this never leaves the server.</p>
+            <div class="ticker"><span class="ticker__price mono" id="serverCode">——————</span><span class="ticker__seq" id="left"></span></div>
+            <div class="score-list__bar" style="height:8px; margin: var(--space-2) 0"><span id="windowBar" style="width:100%"></span></div>
+            <div class="table-wrap"><table class="data"><tbody>
+                <tr><td class="key">counter</td><td class="value mono" id="counter">—</td></tr>
+                <tr><td class="key">previous window</td><td class="value mono" id="prev">—</td></tr>
+                <tr><td class="key">next window</td><td class="value mono" id="next">—</td></tr>
+                <tr><td class="key">formula</td><td class="value mono" id="formula">—</td></tr>
+            </tbody></table></div>
+            <div class="btn-row" style="margin-top: var(--space-3)"><button type="button" class="btn btn--secondary btn--small" id="useServer">Fill in the server's code</button><button type="button" class="btn btn--secondary btn--small" id="usePrev">Fill in the previous code</button></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'The QR code encodes an <code>otpauth://totp/…?secret=…&issuer=…</code> URI. The app stores the secret and from then on both sides can compute the same six digits from the same clock — nothing is ever sent between them again.',
+            'The code is <code>HMAC-SHA1(secret, floor(unix_time / 30))</code>, truncated to 31 bits, mod 10⁶. The <em>counter</em> row is that <code>floor</code>; the bar is how long the current window has left.',
+            '"Fill in the previous code" still verifies: the server accepts one 30-second step either way, because phones drift. Verify it a second time and it fails — each window is one-shot, so a code overheard once cannot be replayed.',
+            'The secret is base32 because the earliest authenticator apps needed something a human could type when the camera failed.'
+        ], 'accent') }}
+        {{ notes.section('Where it sits', [
+            'TOTP is the second factor: something you <em>have</em> (the phone with the secret) alongside something you <em>know</em> (the password). It stops password-only attacks — credential stuffing, leaked databases.',
+            'It is standardised (RFC 6238, built on HOTP RFC 4226), which is why any app works with any site. SMS codes are the weaker cousin: interceptable, SIM-swappable, and not a standard.',
+            'The stronger successors are WebAuthn / passkeys: public-key challenge–response bound to the origin, so phishing sites cannot relay them. TOTP codes <em>can</em> be phished in real time — an attacker page that proxies your code within 30 seconds wins.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Store the secret encrypted at rest and treat it like a password. Anyone with it can generate every future code.',
+            'Track the last-used counter per user and refuse repeats — replay protection is your job, not the algorithm\'s.',
+            'Rate-limit verification attempts. Six digits is a million possibilities; with a ±1 window and no limit, brute force is a weekend.',
+            'Keep server clocks on NTP. Drift beyond the tolerance window looks to users like "the app is broken", and widening the window weakens replay protection.',
+            'Offer recovery codes at enrolment and make users confirm one valid code <em>before</em> enabling 2FA — otherwise a mis-scanned QR locks them out.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "totp";</script>
+<script src="{{ url_for('static', filename='js/lab_auth.js') }}" defer></script>
+{% endblock %}

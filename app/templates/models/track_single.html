@@ -1,0 +1,43 @@
+{% extends "models/_page.html" %}
+
+{% block model_content %}
+<div class="runner">
+    <div class="runner__panel">
+        <div class="card">
+            <h2 class="h3">Camera</h2>
+            <ol class="small muted" style="padding-left: 1.2rem">
+                <li>Start the camera.</li>
+                <li>Drag a box around the thing you want followed.</li>
+                <li>Tracking begins as soon as you release.</li>
+            </ol>
+            <div class="btn-row" style="margin-top: var(--space-4)">
+                <button type="button" class="btn" id="startCamera">Start camera</button>
+                <button type="button" class="btn btn--secondary" id="stopTracking" disabled>
+                    Stop
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="runner__output">
+        <div class="card">
+            <div class="video-stage">
+                <video id="video" playsinline muted aria-label="Camera preview"></video>
+                <canvas id="overlay" class="overlay"
+                        aria-label="Drag to select a target"></canvas>
+            </div>
+            <canvas id="capture" hidden></canvas>
+            <div class="preview-frame" id="trackedFrame" style="margin-top: var(--space-4)">
+                <p class="preview-frame__empty">The tracked frame appears here.</p>
+            </div>
+            <div id="result" class="result" role="status" aria-live="polite"
+                 style="margin-top: var(--space-4)"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block model_scripts %}
+<script src="{{ url_for('static', filename='js/webcam.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/track_single.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% block title %}{{ spec.title }} · Compiled{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_tools.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">{{ spec.subtitle }}</span>
+    <h1>{{ spec.title }}</h1>
+    <p>{{ spec.blurb }}</p>
+</div>
+
+{% block tool_content %}{% endblock %}
+{% endblock %}
+
+{% block scripts %}{% block tool_scripts %}{% endblock %}{% endblock %}

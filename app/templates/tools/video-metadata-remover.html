@@ -1,0 +1,69 @@
+{% extends "tools/_page.html" %}
+
+{% block tool_content %}
+<div class="runner">
+    <div class="runner__panel">
+        <div class="card">
+            <form id="videoMetadataForm" enctype="multipart/form-data">
+                <div class="field">
+                    <span class="field__label">Video</span>
+                    <label class="dropzone">
+                        <input type="file" name="file" required accept="video/*"
+                               aria-label="Video to strip metadata from">
+                        <span class="dropzone__name">Drop a video or click to choose</span>
+                        <span class="dropzone__hint">MP4, MOV, MKV, WebM, AVI · up to {{ (config.MAX_CONTENT_LENGTH // 1048576) }} MB</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn--block">
+                    Inspect and strip metadata
+                </button>
+                <p class="field__help">
+                    Phone recordings usually carry the exact time, the device,
+                    and often the GPS position. The video and audio streams are
+                    copied byte for byte — nothing is re-encoded, so there is no
+                    quality loss and even long files take seconds.
+                </p>
+            </form>
+        </div>
+
+        <div class="card" id="downloadCard" hidden>
+            <h2 class="h3">Clean copy</h2>
+            <p class="small muted" id="sizeNote"></p>
+            <a class="btn btn--block" id="downloadLink" href="#" download>
+                Download the clean video
+            </a>
+        </div>
+    </div>
+
+    <div class="runner__output">
+        <div class="preview-pair">
+            <div>
+                <div class="preview-frame" id="inputPreview">
+                    <p class="preview-frame__empty">Your video</p>
+                </div>
+                <p class="preview-caption">Original</p>
+            </div>
+            <div>
+                <div class="preview-frame" id="outputPreview">
+                    <p class="preview-frame__empty">The clean copy appears here</p>
+                </div>
+                <p class="preview-caption">Metadata removed</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="h3">What was in the file</h2>
+            <div id="result" class="result" role="status" aria-live="polite">
+                <p class="small muted">
+                    Choose a video and every tag found in it — container, per
+                    stream, chapters — will be listed here before it is removed.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block tool_scripts %}
+<script src="{{ url_for('static', filename='js/video_metadata.js') }}" defer></script>
+{% endblock %}

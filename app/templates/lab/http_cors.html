@@ -1,0 +1,58 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="alert alert--warn" style="margin-bottom: var(--space-5)" id="originNote"></div>
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">1 · Pick the server's policy</h2>
+            <div class="field">
+                <select id="policy">
+                    <option value="none">none — no CORS headers (the default for any API)</option>
+                    <option value="wildcard">Access-Control-Allow-Origin: *</option>
+                    <option value="origin">Access-Control-Allow-Origin: &lt;your origin&gt;</option>
+                    <option value="preflight">+ Allow-Methods / Allow-Headers (survives preflight)</option>
+                    <option value="credentials">+ Allow-Credentials: true (cookies)</option>
+                </select>
+            </div>
+            <h2 class="h3" style="margin-top: var(--space-4)">2 · Make a request</h2>
+            <div class="btn-row">
+                <button type="button" class="btn" data-req="simple">Simple GET</button>
+                <button type="button" class="btn" data-req="custom">GET with X-Demo header</button>
+                <button type="button" class="btn" data-req="json">POST JSON</button>
+                <button type="button" class="btn" data-req="creds">GET with cookies</button>
+            </div>
+            <p class="field__help" style="margin-top: var(--space-3)">The last three are "non-simple": the browser sends an <code>OPTIONS</code> preflight first.</p>
+        </div>
+        <div class="card"><h2 class="h3">What happened</h2><div id="outcome"><p class="small muted">Nothing yet.</p></div></div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Did it reach the server?</h2><button type="button" class="btn btn--secondary btn--small" id="resetHits">Reset</button></div>
+            <div class="stats" style="margin-top: var(--space-3)" id="hits"></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'An <em>origin</em> is scheme + host + port. <code>http://localhost:5000</code> and <code>http://127.0.0.1:5000</code> are the same Flask process but different origins to the browser, which is how this page gets a cross-origin call with no second server.',
+            'With policy <strong>none</strong> and a <strong>Simple GET</strong>, watch the hit counter: the request <em>reached the server and ran</em>. Only the response was withheld from your JavaScript. CORS is enforced by the browser, after the fact.',
+            'With a custom header or JSON body, the browser first sends <code>OPTIONS</code> — the preflight. If that does not come back with matching <code>Access-Control-Allow-Headers</code> / <code>-Methods</code>, the real request is never sent: the hit counter stays put.'
+        ], 'accent') }}
+        {{ notes.section('The rules, compressed', [
+            '"Simple" requests: GET/HEAD/POST with only safe-listed headers and a form-ish <code>Content-Type</code>. They go straight out; the browser checks <code>Access-Control-Allow-Origin</code> on the way back.',
+            'Anything else — custom headers, <code>application/json</code>, PUT/DELETE — gets a preflight. The server must answer <code>OPTIONS</code> with the allowed methods and headers. <code>Access-Control-Max-Age</code> lets the browser cache that answer (5 s here so you keep seeing them).',
+            'Cookies and HTTP auth need <code>credentials: \'include\'</code> on the client <em>and</em> <code>Access-Control-Allow-Credentials: true</code> on the server, and then <code>*</code> is forbidden: the origin must be spelled out.',
+            'Response headers are hidden from JS too, except a safe-listed few, unless the server adds <code>Access-Control-Expose-Headers</code>.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'CORS is not security for your API. It protects <em>users\' browsers</em> from sites reading responses that used the user\'s cookies. <code>curl</code> ignores it entirely. Authenticate every request regardless.',
+            'Echoing the <code>Origin</code> header back as <code>Allow-Origin</code> plus <code>Allow-Credentials: true</code> is the same as allowing everyone with cookies. Check the origin against an allow-list.',
+            '<code>Vary: Origin</code> matters when you echo the origin, or a cache serves site A\'s allow header to site B.',
+            'The browser console explains <em>exactly</em> why a request was blocked. <code>fetch()</code> only tells you "TypeError: Failed to fetch". Open DevTools when this page says "blocked".'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "cors";</script>
+<script src="{{ url_for('static', filename='js/lab_http.js') }}" defer></script>
+{% endblock %}

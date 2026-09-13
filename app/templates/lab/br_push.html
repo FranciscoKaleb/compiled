@@ -1,0 +1,51 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0"><span class="status-dot" id="pushDot"></span>This browser</h2><span class="small muted" id="pushState">checking…</span></div>
+            <div class="btn-row" style="margin-top: var(--space-3)">
+                <button type="button" class="btn" id="subscribe">Subscribe to notifications</button>
+                <button type="button" class="btn btn--secondary" id="unsubscribe" disabled>Unsubscribe</button>
+            </div>
+            <p class="field__help" style="margin-top: var(--space-3)">The browser will ask for permission. Then it contacts <em>its vendor's</em> push service and hands this server an endpoint URL plus encryption keys.</p>
+            <pre class="small" id="subInfo" style="max-height: 160px; overflow:auto">—</pre>
+        </div>
+        <div class="card">
+            <h2 class="h3">Send from the server</h2>
+            <div class="field"><label class="field__label" for="title">Title</label><input type="text" id="title" value="Compiled Web Lab"></div>
+            <div class="field"><label class="field__label" for="body">Body</label><input type="text" id="body" value="Delivered by the push service — close this tab and send another."></div>
+            <div class="btn-row"><button type="button" class="btn" id="send">Send now</button><button type="button" class="btn btn--secondary" id="sendLater">Send in 8 s (close the tab first)</button></div>
+            <div id="sendResult" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="alert alert--warn">Requires internet: the browser subscribes with Google/Mozilla/Apple's push service and this server posts to it. Behind a strict firewall the subscribe step will fail.</div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Three parties: your browser, <strong>this server</strong>, and a <strong>push service</strong> run by the browser vendor (FCM for Chrome, autopush for Firefox, APNs for Safari). The browser keeps one connection to its push service open all the time; that is how a closed tab can still be reached.',
+            '<strong>Subscribe</strong> asks the push service for an endpoint URL unique to this browser and generates a keypair. The endpoint plus the public key is the <code>PushSubscription</code> JSON shown — that is all the server stores.',
+            '<strong>Send</strong>: the server encrypts the payload with the subscription\'s key, signs the request with its <strong>VAPID</strong> private key to prove who it is, and POSTs to the endpoint. The push service wakes the browser; the service worker\'s <code>push</code> event shows the notification.',
+            '<strong>Send in 8 s</strong>, then close the tab: the notification still arrives. The service worker ran without any page open.'
+        ], 'accent') }}
+        {{ notes.section('The pieces', [
+            '<strong>VAPID</strong> (Voluntary Application Server Identification): an ECDSA keypair. The public key is given to the browser at subscribe time so the push service can later check that pushes come from the same server. Generated once here and stored in <code>app_files/db/vapid.json</code>.',
+            '<strong>Payload encryption</strong> (RFC 8291): the push service can route the message but cannot read it. <code>pywebpush</code> does the ECDH + AES-GCM dance.',
+            '<strong>TTL</strong>: how long the push service holds the message if the device is offline. <code>ttl=60</code> here; hours or days for real notifications.',
+            'A <strong>404 or 410</strong> from the push service means the subscription is dead (user revoked, browser reinstalled) — delete it, as this server does.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Ask for permission at a moment that makes sense to the user, after they have done something that warrants it. A prompt on page load is the fastest way to get permanently blocked.',
+            'Never assume a tab exists. The <code>push</code> handler must call <code>showNotification</code> (browsers require it) and must not depend on page state.',
+            'Subscriptions are per browser profile per site and can silently expire. Re-send the subscription to the server on every visit and handle <code>pushsubscriptionchange</code>.',
+            'Safari on iOS supports Web Push only for sites added to the Home Screen. Chrome on Android and all desktop browsers support it normally.',
+            'This is not a substitute for in-app real-time (Level 1). Push is for "you are not here" — low volume, high importance.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "push";</script>
+<script src="{{ url_for('static', filename='js/lab_browser.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,144 @@
+/* ==========================================================================
+   Design tokens — the single source of every colour, space and radius.
+   Light is defined on :root. Dark is redefined twice on purpose: once for the
+   system preference (unless the viewer has explicitly chosen light) and once
+   for an explicit choice, so the toggle wins in both directions.
+   ========================================================================== */
+
+:root {
+    color-scheme: light;
+
+    /* Brand — the green this app has always used, now defined once. */
+    --brand: #04AA6D;
+    --brand-strong: #038a57;
+    --brand-soft: rgba(4, 170, 109, 0.12);
+    --brand-contrast: #ffffff;
+
+    --accent: #0b74e6;
+    --danger: #dc2626;
+    --danger-soft: rgba(220, 38, 38, 0.1);
+    --warning: #b45309;
+    --warning-soft: rgba(245, 158, 11, 0.14);
+
+    /* Surfaces */
+    --bg: #f4f6f8;
+    --bg-raised: #ffffff;
+    --bg-sunken: #eef1f5;
+    --bg-hover: rgba(15, 23, 42, 0.04);
+
+    /* Text */
+    --text: #1f2937;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --text-inverse: #f8fafc;
+
+    /* Lines */
+    --border: rgba(15, 23, 42, 0.12);
+    --border-strong: rgba(15, 23, 42, 0.22);
+
+    /* Elevation */
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 12px 30px rgba(15, 23, 42, 0.12);
+
+    /* Spacing — a 4px scale */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 3rem;
+
+    /* Radii */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-pill: 999px;
+
+    /* Type */
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+            Arial, "Noto Sans", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+                 "Liberation Mono", monospace;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.375rem;
+    --text-2xl: 1.75rem;
+    --text-3xl: 2.25rem;
+
+    /* Chrome */
+    --header-height: 60px;
+    --sidebar-width: 264px;
+    --transition: 160ms ease;
+}
+
+/* Dark, by system preference — unless light was chosen explicitly. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+
+        --brand: #2ec98c;
+        --brand-strong: #24b47c;
+        --brand-soft: rgba(46, 201, 140, 0.16);
+        --brand-contrast: #04241a;
+
+        --accent: #60a5fa;
+        --danger: #f87171;
+        --danger-soft: rgba(248, 113, 113, 0.14);
+        --warning: #fbbf24;
+        --warning-soft: rgba(251, 191, 36, 0.16);
+
+        --bg: #0f172a;
+        --bg-raised: #1a2338;
+        --bg-sunken: #141c2e;
+        --bg-hover: rgba(226, 232, 240, 0.07);
+
+        --text: #e2e8f0;
+        --text-muted: #94a3b8;
+        --text-faint: #64748b;
+        --text-inverse: #0f172a;
+
+        --border: rgba(226, 232, 240, 0.14);
+        --border-strong: rgba(226, 232, 240, 0.28);
+
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+        --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Dark, chosen explicitly. */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --brand: #2ec98c;
+    --brand-strong: #24b47c;
+    --brand-soft: rgba(46, 201, 140, 0.16);
+    --brand-contrast: #04241a;
+
+    --accent: #60a5fa;
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.14);
+    --warning: #fbbf24;
+    --warning-soft: rgba(251, 191, 36, 0.16);
+
+    --bg: #0f172a;
+    --bg-raised: #1a2338;
+    --bg-sunken: #141c2e;
+    --bg-hover: rgba(226, 232, 240, 0.07);
+
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+    --text-inverse: #0f172a;
+
+    --border: rgba(226, 232, 240, 0.14);
+    --border-strong: rgba(226, 232, 240, 0.28);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.5);
+}

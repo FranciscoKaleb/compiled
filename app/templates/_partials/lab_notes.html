@@ -1,0 +1,9 @@
+{# Structured notes for the third column of a lab page. Items may contain <code>. #}
+{% macro section(title, items, kind='') %}
+<div class="note {{ 'note--' ~ kind if kind }}">
+    <h3 class="note__title">{{ title }}</h3>
+    <ul class="note__list">
+        {% for item in items %}<li>{{ item | safe }}</li>{% endfor %}
+    </ul>
+</div>
+{% endmacro %}

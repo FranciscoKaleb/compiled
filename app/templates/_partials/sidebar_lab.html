@@ -1,0 +1,19 @@
+<nav class="sidebar" id="sidebar" aria-label="Web Lab">
+    <p class="sidebar__title">Web Lab</p>
+    {% for key, title, description, specs in lab_groups %}
+    <div class="sidebar__group">
+        <button type="button" class="sidebar__toggle" data-group="lab-{{ key }}"
+                aria-expanded="{{ 'true' if specs | selectattr('slug', 'equalto', active) | list else 'true' }}">
+            <span>{{ title }}</span>
+            <span class="sidebar__chevron" aria-hidden="true">›</span>
+        </button>
+        <div class="sidebar__items">
+            {% for spec in specs %}
+            <a href="{{ spec.url }}" {% if spec.slug == active %}aria-current="page"{% endif %}>
+                <span class="muted mono small">{{ spec.level }}.</span> {{ spec.title }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</nav>

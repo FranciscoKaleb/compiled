@@ -1,0 +1,52 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Hit the endpoint</h2>
+            <div class="field"><label class="field__label" for="algo">Limiter</label>
+                <select id="algo"><option value="bucket">Token bucket — 5 tokens, refills 1 per second</option><option value="window">Sliding window — 5 requests per 5 seconds</option><option value="none">None</option></select></div>
+            <div class="btn-row">
+                <button type="button" class="btn" id="one">Send one</button>
+                <button type="button" class="btn btn--danger" id="spam">Spam 12 at once</button>
+                <button type="button" class="btn btn--secondary" id="steady">Steady 1 / s</button>
+                <button type="button" class="btn btn--secondary" id="reset">Reset</button>
+            </div>
+            <div class="stats" style="margin-top: var(--space-4)" id="stats"></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Inside the limiter</h2>
+            <p class="small muted">Token bucket</p>
+            <div class="score-list__bar" style="height: 16px"><span id="bucketBar" style="width:100%"></span></div>
+            <p class="small mono muted" id="bucketText" style="margin-top: var(--space-2)"></p>
+            <p class="small muted" style="margin-top: var(--space-3)">Sliding window (each block is one request; it falls out after 5 s)</p>
+            <div class="chips" id="windowChips" style="min-height: 28px"></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Both limiters allow a burst of five. Press <strong>Spam 12</strong>: five <code>200</code>s, seven <code>429</code>s, each with <code>Retry-After</code>.',
+            'Then press <strong>Steady 1/s</strong>. The token bucket lets every request through — it refills at exactly that rate. The sliding window blocks you until the oldest of the five burst requests is more than five seconds old, then admits one per expiring slot. Same limit, very different feel.',
+            'The response carries the IETF draft headers <code>RateLimit-Limit</code>, <code>RateLimit-Remaining</code>, <code>RateLimit-Reset</code>. Older APIs use <code>X-RateLimit-*</code>; GitHub and Stripe both do.'
+        ], 'accent') }}
+        {{ notes.section('The algorithms', [
+            '<strong>Token bucket</strong>: a counter that gains <em>r</em> tokens per second up to a capacity <em>c</em>; a request spends one. Allows bursts up to <em>c</em>, then smooths to <em>r</em>. Two numbers, O(1) memory. The default choice.',
+            '<strong>Sliding window log</strong>: remember the timestamp of every request in the last <em>N</em> seconds; allow if fewer than the limit. Exact, but memory grows with traffic. Redis sorted sets make it cheap.',
+            '<strong>Fixed window</strong> (not shown): a counter that resets every minute. Simplest, but allows 2× the limit across a boundary (5 at 0:59, 5 more at 1:00).',
+            '<strong>Sliding window counter</strong>: weighted blend of the current and previous fixed windows. Approximate, tiny, and what most production systems actually run.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Key on the right thing. Per-IP punishes everyone behind a corporate NAT; per-user lets unauthenticated abuse through. Most APIs layer both, plus a per-endpoint limit for expensive routes.',
+            'State must be shared. An in-process counter (like this demo) means five servers allow five times the limit. Redis with a Lua script for atomicity is the standard answer.',
+            'Clients must honour <code>Retry-After</code>. A client that retries immediately turns one over-limit user into a denial-of-service on your limiter.',
+            'Return 429, not 503, and keep the body small — you are answering a lot of these under load.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "rate-limiting";</script>
+<script src="{{ url_for('static', filename='js/lab_server.js') }}" defer></script>
+{% endblock %}

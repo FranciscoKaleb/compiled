@@ -1,0 +1,51 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Load 30 authors with their books</h2>
+            <div class="btn-row">
+                <button type="button" class="btn btn--danger" data-load="lazy">Lazy (the default)</button>
+                <button type="button" class="btn" data-load="selectin">selectinload</button>
+                <button type="button" class="btn" data-load="joined">joinedload</button>
+            </div>
+            <div class="stats" style="margin-top: var(--space-4)" id="stats"></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Result</h2><span class="small muted" id="resultMeta"></span></div>
+            <div class="table-wrap" style="max-height: 320px; overflow:auto"><table class="data"><thead><tr><th>Author</th><th>Books</th></tr></thead><tbody id="authors"></tbody></table></div>
+        </div>
+        <div class="card"><h2 class="h3">The code that causes it</h2>
+            <pre class="small">authors = session.execute(select(Author)).scalars().all()   # 1 query
+for a in authors:
+    print(a.name, [b.title for b in a.books])               # a.books → 1 query EACH</pre>
+            <p class="small muted">Nothing in that loop looks like a database call. The ORM makes one anyway, per author, the moment <code>.books</code> is touched. In a template, <code>{% raw %}{% for book in author.books %}{% endraw %}</code> is the same thing.</p></div>
+    </div>
+    {% include "lab/_sql_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            '<strong>Lazy</strong>: the SQL panel shows one <code>SELECT … FROM lab_author</code> followed by thirty <code>SELECT … FROM lab_book WHERE author_id = ?</code>, each with a different parameter. That is N+1: one query for the list, one more per row. 30 authors → 31 queries; 3,000 authors → 3,001.',
+            '<strong>selectinload</strong>: two queries. The second is <code>SELECT … FROM lab_book WHERE author_id IN (?, ?, …)</code> with all thirty ids at once, and the ORM stitches the results together in Python.',
+            '<strong>joinedload</strong>: one query with a <code>LEFT OUTER JOIN</code>. Fewer round trips still — but every author row is repeated once per book in the result set (90 rows for 30 authors), and the ORM de-duplicates.',
+            'On this laptop with SQLite the timings barely differ — the round trip is microseconds. Against a database on another machine each query is ~1 ms of network time, so 31 vs 2 becomes 31 ms vs 2 ms per page view.'
+        ], 'accent') }}
+        {{ notes.section('Fixing it', [
+            'Tell the ORM what you will need <em>when you load the parent</em>: <code>select(Author).options(selectinload(Author.books))</code>. Or set the default on the relationship: <code>relationship(..., lazy="selectin")</code>.',
+            '<strong>selectinload</strong> is the usual right answer for collections: predictable, no row explosion, works with LIMIT on the parent query.',
+            '<strong>joinedload</strong> suits to-one relationships (<code>book.author</code>) and small collections. Combined with <code>LIMIT</code> on the parent it needs a subquery, and wide joins multiply rows fast.',
+            'Sometimes the fix is not to load the objects at all: one aggregate query (<code>SELECT author_id, COUNT(*) … GROUP BY</code>) when you only need counts.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'N+1 hides in development because the dataset is small and the database is local. It surfaces in production as "the page got slow" with no single slow query — 200 fast queries.',
+            'Count queries in tests. SQLAlchemy: the <code>after_cursor_execute</code> event used by this page. Django: <code>assertNumQueries</code>. Set a budget per endpoint and fail the build when it is exceeded.',
+            'Serialisers and templates are the usual trigger: a JSON encoder that walks <code>author.books</code> for every author. The query is far from the code that caused it.',
+            'Eager loading everything is the opposite mistake: loading books for a list page that only shows names moves the cost instead of removing it. Load what the view uses.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "n-plus-one";</script>
+<script src="{{ url_for('static', filename='js/lab_data.js') }}" defer></script>
+{% endblock %}

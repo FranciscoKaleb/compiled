@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% block title %}{{ spec.title }} · Web Lab{% endblock %}
+{% block content_class %}content--full{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_lab.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    {% set group = (lab_groups | selectattr('0', 'equalto', spec.group) | first) %}
+    <span class="page-head__eyebrow">{{ group[1] }} · step {{ spec.level }} · {{ spec.subtitle }}</span>
+    <h1>{{ spec.title }}</h1>
+    <p>{{ spec.blurb }}</p>
+</div>
+{% block lab_content %}{% endblock %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/lab.js') }}" defer></script>
+{% block lab_scripts %}{% endblock %}
+{% endblock %}

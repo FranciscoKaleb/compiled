@@ -1,0 +1,54 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Ask the server for a status</h2>
+            <div class="chips" id="codes"></div>
+            <p class="field__help" style="margin-top: var(--space-3)">Each button requests <code>/api/basics/status/&lt;code&gt;</code>. The server answers with that code <em>and</em> whatever companion header the code calls for.</p>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">What came back</h2><span class="small muted" id="meta"></span></div>
+            <div id="explain"><p class="small muted">Pick a code.</p></div>
+            <pre class="small" id="raw" style="max-height: 260px; overflow:auto">—</pre>
+        </div>
+        <div class="card">
+            <h2 class="h3">The five classes</h2>
+            <div class="table-wrap"><table class="data"><tbody>
+                <tr><td class="key">1xx</td><td><strong>Informational</strong> — "keep going". <code>101 Switching Protocols</code> is the WebSocket handshake (Level 1). Rarely seen by application code.</td></tr>
+                <tr><td class="key">2xx</td><td><strong>Success</strong> — it worked. 200 with a body, 201 for created, 204 for "done, nothing to say", 202 for "later".</td></tr>
+                <tr><td class="key">3xx</td><td><strong>Redirection</strong> — the answer is elsewhere. 301/308 permanent, 302/307 temporary, 304 "use your cache".</td></tr>
+                <tr><td class="key">4xx</td><td><strong>Client error</strong> — the request is the problem. Fix the request; retrying the same one will not help.</td></tr>
+                <tr><td class="key">5xx</td><td><strong>Server error</strong> — the server is the problem. The request may be fine; retrying later may work.</td></tr>
+            </tbody></table></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Press <strong>301</strong> or <strong>302</strong>: the response you get is a <code>200</code>. <code>fetch()</code> followed the redirect for you; <code>response.redirected</code> is <code>true</code> and <code>response.url</code> is where you ended up. You never see the 3xx itself unless you ask with <code>redirect: "manual"</code>.',
+            '<strong>401</strong> carries <code>WWW-Authenticate: Bearer realm="…"</code> — the server telling you <em>how</em> to authenticate. <strong>405</strong> carries <code>Allow</code>. <strong>429</strong> and <strong>503</strong> carry <code>Retry-After</code>. The code is the headline; the header is the instruction.',
+            '<strong>204</strong> and <strong>304</strong> have no body by definition — <code>response.text()</code> is empty and that is correct, not an error.',
+            '<code>response.ok</code> is simply <code>status &gt;= 200 &amp;&amp; status &lt; 300</code>. A 404 does <em>not</em> reject the fetch promise; only network failure does. Check <code>ok</code> yourself.'
+        ], 'accent') }}
+        {{ notes.section('The ones that get confused', [
+            '<strong>401 vs 403</strong>: 401 means "I do not know who you are" (log in); 403 means "I know exactly who you are, and no". Returning 403 for a missing login sends users in circles.',
+            '<strong>301 vs 302 vs 307/308</strong>: 301/302 let browsers change a POST into a GET on the redirect (historical behaviour); 307/308 forbid that. Redirecting a form submission? Use 303 (See Other) to GET the result page, or 307 to repeat the POST.',
+            '<strong>400 vs 422</strong>: 400 is "I cannot parse this" (broken JSON); 422 is "I parsed it and it is wrong" (missing field, invalid email). Frameworks differ; Flask-style APIs often use 400 for both.',
+            '<strong>404 vs 410</strong>: 404 is "not here"; 410 is "was here, deliberately removed, stop asking" — search engines drop 410 URLs faster.',
+            '<strong>500 vs 502/503/504</strong>: 500 is your code crashing; 502/504 come from a proxy that could not reach or wait for you; 503 is "on purpose, temporarily". Which one you see tells you which layer to look at.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Do not invent codes and do not return 200 with <code>{"error": …}</code> in the body. Caches, monitors, retry logic and the browser all read the status line; a "successful" error is invisible to every one of them.',
+            'A 4xx response can and should have a body that explains the problem — this API returns JSON on every error. RFC 9457 (Problem Details) standardises the shape: <code>type</code>, <code>title</code>, <code>status</code>, <code>detail</code>.',
+            'Retry on 5xx (with backoff), never on 4xx — except 429 (wait <code>Retry-After</code>) and, arguably, 408.',
+            '<code>418 I\'m a teapot</code> is real (RFC 2324, April 1 1998) and a running joke; do not use it for anything.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "status-codes";</script>
+<script src="{{ url_for('static', filename='js/lab_basics.js') }}" defer></script>
+{% endblock %}

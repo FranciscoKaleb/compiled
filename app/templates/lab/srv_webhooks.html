@@ -1,0 +1,53 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Sender (this server)</h2>
+            <div class="field"><label class="field__label" for="url">Deliver to</label><input type="text" id="url" value="">
+                <p class="field__help">Defaults to the receiver below. For safety only local URLs are accepted.</p></div>
+            <div class="field"><label class="field__label" for="secret">Signing secret</label><input type="text" id="secret" value="">
+                <p class="field__help">Change one character and the receiver will reject the signature.</p></div>
+            <div class="btn-row"><button type="button" class="btn" id="send">Send an order.paid event</button></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Receiver (also this server, pretending to be you)</h2>
+            <div class="btn-row">
+                <label class="check"><input type="checkbox" id="fail"> <span>Respond 500</span></label>
+                <label class="check"><input type="checkbox" id="slow"> <span>Take 4 s (sender times out at 3)</span></label>
+                <button type="button" class="btn btn--secondary btn--small" id="reset">Reset log</button>
+            </div>
+            <p class="field__help" style="margin-top: var(--space-3)">Retry schedule: immediately, then +1 s, +2 s, +4 s. Four attempts, then give up.</p>
+        </div>
+        <div class="card"><h2 class="h3">Delivery attempts</h2>
+            <div class="table-wrap"><table class="data"><thead><tr><th>Delivery</th><th>Attempt</th><th>Result</th><th>Time</th></tr></thead><tbody id="attempts"></tbody></table></div></div>
+        <div class="card"><h2 class="h3">Receiver inbox</h2>
+            <div class="table-wrap"><table class="data"><thead><tr><th>Delivery</th><th>Attempt</th><th>Signature</th><th>Responded</th></tr></thead><tbody id="inbox"></tbody></table></div></div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'A webhook is just the server making an HTTP POST to someone else\'s URL when something happens — the reverse of the usual direction. Here both ends are this process so you can watch both tables.',
+            'The signature header is <code>t=&lt;timestamp&gt;,v1=&lt;hmac&gt;</code>: an HMAC-SHA256 over <code>"&lt;timestamp&gt;.&lt;raw body&gt;"</code> with the shared secret — the exact scheme Stripe uses. The receiver recomputes it and compares with <code>hmac.compare_digest</code>.',
+            'Change the secret: the receiver answers <code>401 signature mismatch</code>, the sender treats that as a failure and retries four times over ~7 s, then marks the delivery "gave up". Tick "Respond 500" or "Take 4 s" for the same cycle with different causes.'
+        ], 'accent') }}
+        {{ notes.section('Receiving webhooks correctly', [
+            'Verify the signature over the <strong>raw request bytes</strong>, before parsing JSON. Re-serialising the parsed object changes whitespace and key order and the HMAC will never match.',
+            'Check the timestamp is recent (this receiver allows 5 minutes). Without that, a captured valid request can be replayed forever.',
+            'Respond <code>2xx</code> fast — within a second or two — then do the real work in a background job. A slow handler looks like a failure to the sender (see "Take 4 s") and gets retried, which means your slow work now runs twice.',
+            'Make handling idempotent using the delivery or event id: retries <em>will</em> deliver the same event more than once.'
+        ]) }}
+        {{ notes.section('Sending webhooks correctly', [
+            'Retry with exponential backoff and jitter; give up after a bounded number of attempts and surface the failure somewhere the customer can see it (a dashboard, an email).',
+            'Set a short connect/read timeout (3 s here). A receiver that hangs must not tie up your workers.',
+            'Never deliver to arbitrary URLs from a user form without protection: that is a server-side request forgery vector into your own network. This demo restricts to local addresses for exactly that reason; real systems block private IP ranges and re-resolve DNS.',
+            'Include the event id, type and an attempt number in headers so receivers can dedupe and debug. Offer a "redeliver" button.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "webhooks";</script>
+<script src="{{ url_for('static', filename='js/lab_server.js') }}" defer></script>
+{% endblock %}

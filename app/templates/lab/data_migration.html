@@ -1,0 +1,57 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0"><span class="status-dot" id="trafficDot"></span>Live traffic</h2><span class="small muted" id="trafficState">stopped</span></div>
+            <p class="small muted">Simulates the running application: one read and one insert against <code>lab_profile</code> every second, the whole time you migrate it.</p>
+            <div class="btn-row"><button type="button" class="btn" id="startTraffic">Start traffic</button><button type="button" class="btn btn--secondary" id="stopTraffic" disabled>Stop</button></div>
+            <div class="stats" style="margin-top: var(--space-4)" id="stats"></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Migrate: add a required <code>phone</code> column</h2>
+            <div class="btn-row">
+                <button type="button" class="btn" data-step="add_column">1 · Expand: add nullable column</button>
+                <button type="button" class="btn" data-step="backfill">2 · Backfill existing rows</button>
+                <button type="button" class="btn" data-step="make_required">3 · Contract: make it NOT NULL</button>
+                <button type="button" class="btn btn--secondary" data-step="reset">Reset schema</button>
+            </div>
+            <div id="migrateMsg" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Schema right now</h2><span class="small mono muted" id="rowCount"></span></div>
+            <div class="table-wrap"><table class="data"><thead><tr><th>column</th><th>type</th><th>nullable</th></tr></thead><tbody id="columns"></tbody></table></div>
+            <p class="small muted" style="margin-top: var(--space-3)">Sample rows</p>
+            <pre class="small" id="sample" style="max-height: 160px; overflow:auto">—</pre>
+            <p class="field__help" id="alembic"></p>
+        </div>
+    </div>
+    {% include "lab/_sql_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'The naive migration — <code>ALTER TABLE ADD COLUMN phone TEXT NOT NULL</code> — fails immediately on any table with rows (no default for existing rows), and even with a default it breaks the running app: the old code does not send a phone, so every insert now violates the constraint. Try step 3 first and watch it refuse.',
+            '<strong>Expand</strong>: add the column <em>nullable</em>. Instant, and invisible to the old code, which keeps inserting rows without it. Traffic continues.',
+            '<strong>Backfill</strong>: fill the existing NULLs, in batches in real life. Meanwhile new code (the traffic loop notices the column exists) starts writing phone on insert.',
+            '<strong>Contract</strong>: only once no NULLs remain and no old code is running, tighten the constraint. On SQLite that rebuilds the table — the SQL panel shows <code>CREATE TABLE … INSERT … SELECT … DROP … RENAME</code>. On Postgres it is one <code>ALTER</code>.'
+        ], 'accent') }}
+        {{ notes.section('The expand / contract rule', [
+            'Every schema change that could break running code is split into two deploys: first make the schema accept <em>both</em> old and new code (expand), deploy the new code, then remove what only the old code needed (contract).',
+            'Renaming a column is the classic: add the new column, dual-write from the app, backfill, switch reads, drop the old column. Five small safe steps instead of one <code>RENAME</code> that breaks every instance still running the old code.',
+            'Alembic expresses each step as a revision. <code>flask db migrate</code> autogenerates the diff; you edit it into the expand and contract halves. This app\'s real database is at revision <span class="mono" id="alembicInline">…</span> (see <code>migrations/versions/</code>).',
+            'Migrations run in a transaction on Postgres — a failed one rolls back cleanly. MySQL DDL does not; SQLite DDL does.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Backfill in batches (<code>WHERE phone IS NULL LIMIT 1000</code> in a loop) with a pause between. A single UPDATE over a hundred-million-row table holds locks for minutes and fills the replication log.',
+            'Adding an index on a big table locks it on some databases. Postgres has <code>CREATE INDEX CONCURRENTLY</code>; MySQL has online DDL; plan for it.',
+            'A column default that is a function (<code>NOW()</code>) is evaluated per row and may rewrite the table; a constant default on modern Postgres is metadata-only. Know which one you are asking for.',
+            'Never rely on ORM-generated schema (<code>create_all</code>) in production. It cannot migrate; it can only create. Every change goes through a revision, including the ones that "just add a column".',
+            'Test the <em>down</em> migration too, or accept that some (dropping a column) lose data and document the rollback as "deploy the previous code, leave the schema".'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "migrations";</script>
+<script src="{{ url_for('static', filename='js/lab_data.js') }}" defer></script>
+{% endblock %}

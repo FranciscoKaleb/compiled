@@ -1,0 +1,66 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Log in</h2>
+            <div class="field"><label class="field__label" for="ttl">Lifetime</label>
+                <div class="range-row"><input type="range" id="ttl" min="10" max="180" step="5" value="45"><output for="ttl">45 s</output></div>
+                <p class="field__help">Short on purpose, so you can watch expiry happen.</p></div>
+            <div class="btn-row">
+                <button type="button" class="btn" id="loginCookie">Log in — cookie session</button>
+                <button type="button" class="btn" id="loginJwt">Log in — JWT</button>
+            </div>
+        </div>
+        <div class="compare" style="grid-template-columns: 1fr 1fr">
+            <div class="compare__card">
+                <div class="card__title"><h3 style="margin:0"><span class="status-dot" id="cookieDot"></span>Cookie</h3><span class="small muted" id="cookieState">logged out</span></div>
+                <div class="compare__row"><span>document.cookie sees</span><span id="cookieVisible" class="mono">—</span></div>
+                <div class="compare__row"><span>expires in</span><span id="cookieTtl">—</span></div>
+                <div class="btn-row"><button type="button" class="btn btn--small" id="meCookie">Who am I?</button><button type="button" class="btn btn--secondary btn--small" id="logout">Log out</button></div>
+            </div>
+            <div class="compare__card">
+                <div class="card__title"><h3 style="margin:0"><span class="status-dot" id="jwtDot"></span>JWT</h3><span class="small muted" id="jwtState">no token</span></div>
+                <div class="compare__row"><span>stored in</span><span>JS memory</span></div>
+                <div class="compare__row"><span>expires in</span><span id="jwtTtl">—</span></div>
+                <div class="btn-row"><button type="button" class="btn btn--small" id="meJwt">Who am I?</button><button type="button" class="btn btn--danger btn--small" id="tamper">Tamper: role → admin</button></div>
+            </div>
+        </div>
+        <div class="card">
+            <h2 class="h3">The token, taken apart</h2>
+            <div id="jwtParts" class="stack"><p class="small muted">Log in with JWT to see it.</p></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Server-side session table</h2><button type="button" class="btn btn--danger btn--small" id="revoke">Revoke all sessions</button></div>
+            <div class="table-wrap" style="margin-top: var(--space-3)"><table class="data"><thead><tr><th>sid</th><th>user</th><th>expires in</th></tr></thead><tbody id="sessions"></tbody></table></div>
+            <p class="field__help" id="revokeNote" style="margin-top: var(--space-3)">Then press both "Who am I?" buttons.</p>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            '<strong>Cookie</strong>: the login response carries <code>Set-Cookie: lab_sid=…; HttpOnly; SameSite=Lax; Max-Age=45</code>. The value is a random id. The user, role and expiry live in the server table below. <code>document.cookie</code> shows nothing — HttpOnly hides it from JavaScript, so a script injection cannot steal it.',
+            '<strong>JWT</strong>: the login response is the token itself. Split it at the dots: a header, the claims, a signature — each base64url. The server stored <em>nothing</em>; "Who am I?" is answered by recomputing the HMAC over the first two parts.',
+            '<strong>Tamper</strong> rewrites <code>role</code> in the payload and re-encodes. The claims decode fine — and the server rejects it, because the signature no longer matches. That is the whole security model in one button.',
+            '<strong>Revoke all</strong> empties the table. The cookie session is dead on the next request. The JWT keeps working until <code>exp</code> — the server has no list to check it against.'
+        ], 'accent') }}
+        {{ notes.section('Choosing', [
+            '<strong>Sessions</strong> when you have one backend and want instant logout, "log out everywhere", and to change a user\'s role without waiting. The cost is a store (a database or Redis) hit per request — cheap.',
+            '<strong>JWTs</strong> when many services need to verify identity without calling home: microservices, third-party APIs, mobile clients. Keep them short-lived (minutes) and pair them with a refresh token that <em>is</em> revocable, so you get most of both.',
+            'A JWT in an HttpOnly cookie is a perfectly good session token too. "Cookie vs JWT" is really "where does the truth live": on the server, or in the token.',
+            'Never put secrets in a JWT payload. It is base64, not encryption — anyone with the token can read every claim.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Reject <code>alg: none</code> and never let the token choose the algorithm. Pin one (HS256 here) and verify with that only.',
+            'Always check <code>exp</code>, and for tokens from someone else <code>iss</code> and <code>aud</code> too. A valid signature on a token meant for a different app is still a valid signature.',
+            'Storing a JWT in <code>localStorage</code> makes it readable by any script on the page. Memory (as here) or an HttpOnly cookie is safer; both mean re-login after a page reload unless you add a refresh flow.',
+            'Session ids must be long and random — 24+ bytes from a CSPRNG. Regenerate the id on login to defeat session fixation.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "sessions-vs-jwt";</script>
+<script src="{{ url_for('static', filename='js/lab_auth.js') }}" defer></script>
+{% endblock %}

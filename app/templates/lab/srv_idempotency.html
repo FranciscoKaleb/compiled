@@ -1,0 +1,49 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Checkout</h2>
+            <p>Total: <strong>$25.00</strong> <span class="small muted">— the bank takes about a second to answer</span></p>
+            <div class="field"><label class="check"><input type="checkbox" id="useKey" checked> <span>Send an <code>Idempotency-Key</code> header</span></label>
+                <p class="field__help">A random key is generated per order and reused for every click of Pay on that order.</p></div>
+            <div class="btn-row">
+                <button type="button" class="btn" id="pay">Pay $25</button>
+                <button type="button" class="btn btn--danger" id="double">Double-click Pay (2 × instantly)</button>
+                <button type="button" class="btn btn--secondary" id="newOrder">New order</button>
+            </div>
+            <p class="small mono muted" id="key" style="margin-top: var(--space-3)"></p>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Ledger — what the customer was charged</h2><button type="button" class="btn btn--secondary btn--small" id="resetLedger">Reset</button></div>
+            <div class="stats" style="margin-top: var(--space-3)" id="stats"></div>
+            <div class="table-wrap" style="margin-top: var(--space-3)"><table class="data"><thead><tr><th>Charge</th><th>Amount</th><th>Key</th></tr></thead><tbody id="ledger"></tbody></table></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Untick the key and press <strong>Double-click</strong>: two requests race to the server, both succeed, two charges land on the ledger. Nothing was wrong with either request individually.',
+            'Tick it and repeat: the second request arrives while the first is still "at the bank". The server holds a lock per key, so the first inserts and stores its response; the second finds it and returns it with <code>Idempotent-Replayed: true</code>. One charge.',
+            'The key is per <em>intended action</em>, not per request. "New order" mints a new one, and Pay works again — as it should.'
+        ], 'accent') }}
+        {{ notes.section('How to implement it properly', [
+            'The client generates a UUID when the user <em>intends</em> the action (the order page loads) and sends it as <code>Idempotency-Key</code> on every attempt, including automatic retries.',
+            'Server: store <code>key → (request fingerprint, response)</code> in the same transaction as the side effect. Use the database\'s unique constraint on the key as the lock — two concurrent inserts, one wins, the other reads.',
+            'Reject a reused key with a <em>different</em> body (<code>422 Unprocessable</code>): same key, different amount is a bug in the client, not a retry.',
+            'Expire keys — 24 hours is common. Stripe keeps them for a day; their docs on this are the canonical reference.'
+        ]) }}
+        {{ notes.section('Why the button alone is not enough', [
+            'Disabling the button stops one human, twice. It does not stop: the browser resending a POST on back/forward, a mobile network retrying a timed-out request, a proxy retrying on a 502, or your own retry-with-backoff code.',
+            'GET, PUT and DELETE are idempotent by definition (repeat them, same result). POST is not — which is exactly why POST needs the key.',
+            'A payment is the classic example, but the same applies to "send email", "create ticket", "transfer stock" — any POST whose repetition costs something.',
+            'Store the response, not just "seen". Replaying the original body means the client sees the same charge id both times and can reconcile.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "idempotency";</script>
+<script src="{{ url_for('static', filename='js/lab_server.js') }}" defer></script>
+{% endblock %}

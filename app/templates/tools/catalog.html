@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% block title %}Tools · Compiled{% endblock %}
+{% block content_class %}content--wide{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_tools.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">Catalogue</span>
+    <h1>Tools</h1>
+    <p>{{ all_tools | length }} file utilities that run on this machine. Results are kept
+       for a day and are only downloadable by the browser that created them.</p>
+</div>
+
+<div class="field search-field">
+    <label class="field__label" for="modelSearch">Filter</label>
+    <input type="text" id="modelSearch" placeholder="Search tools…" autocomplete="off">
+</div>
+
+{% for key, title, description, specs in tool_categories %}
+<section class="catalog-section" data-section>
+    <div class="catalog-section__head">
+        <h2>{{ title }}</h2>
+        <p>{{ description }}</p>
+    </div>
+    <div class="card-grid">
+        {% for tool in specs %}
+        <a class="tile" href="{{ tool.url }}"
+           data-search="{{ (tool.title ~ ' ' ~ tool.subtitle ~ ' ' ~ title ~ ' ' ~ tool.blurb) | lower }}">
+            <span class="tile__eyebrow">{{ tool.subtitle }}</span>
+            <span class="tile__title">{{ tool.title }}</span>
+            <span class="tile__blurb">{{ tool.blurb }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+<p class="empty-note" id="noMatches" hidden>Nothing matches that search.</p>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/catalog.js') }}" defer></script>
+{% endblock %}

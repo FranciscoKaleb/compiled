@@ -1,0 +1,59 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">1 · The victim: your profile</h2>
+            <div id="loginNeeded"><p class="small muted">You need a cookie session first.</p><button type="button" class="btn btn--small" id="login">Log in as alice</button></div>
+            <div id="profileBox" hidden>
+                <p>Signed in as <strong id="who"></strong>. Contact email: <strong id="email" class="mono"></strong></p>
+                <form id="legitForm" class="btn-row" style="align-items:flex-end">
+                    <div class="field" style="margin:0; flex:1"><label class="field__label" for="newEmail">Change email (the legitimate way)</label><input type="text" id="newEmail" value="alice@newmail.example"></div>
+                    <button type="submit" class="btn">Save</button>
+                </form>
+            </div>
+        </div>
+        <div class="card">
+            <h2 class="h3">2 · The defence</h2>
+            <label class="check"><input type="checkbox" id="protect"> <span>Require a CSRF token on the profile form</span></label>
+            <p class="field__help" style="margin-top: var(--space-2)">When on, the server issues a random token tied to your session; the legitimate form includes it in a hidden field. The attacker\'s form cannot know it.</p>
+            <p class="small mono muted" id="tokenShow"></p>
+        </div>
+        <div class="card">
+            <h2 class="h3">3 · The attack</h2>
+            <p class="small muted">Open the attacker\'s page. It looks like a prize draw. It contains a hidden form pointing at <code>/lab/api/auth/profile</code> that submits itself on load — and your browser attaches your session cookie because it always does.</p>
+            <div class="btn-row">
+                <a class="btn btn--danger" href="{{ url_for('lab.csrf_attacker') }}" target="_blank" rel="opener">Open attacker page ↗</a>
+                <button type="button" class="btn btn--secondary" id="refresh">Re-check my profile</button>
+            </div>
+            <p class="field__help" style="margin-top: var(--space-3)">Come back here and re-check. With the defence off your email is now <code>hacked@evil.example</code>. Turn it on and try again.</p>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Cookies are attached by the <em>browser</em>, based on the request\'s destination, not on which page made the request. The attacker page never sees your cookie — it just makes your browser send it.',
+            'The forged request is a perfectly ordinary <code>POST /lab/api/auth/profile</code> with <code>email=hacked@evil.example</code>. The server cannot tell it from the real form. That is the vulnerability.',
+            'With the token on, the server compares a hidden <code>csrf_token</code> field to the one stored in your session. The attacker cannot read your session, so cannot know the token: <code>403</code>.',
+            'The attacker page here is served from this same app to keep the demo self-contained — think of it as user-generated content, a comment with HTML, or a compromised subdomain.'
+        ], 'accent') }}
+        {{ notes.section('The defences, layered', [
+            '<strong>Synchroniser token</strong> (this demo): random per session, embedded in every state-changing form, checked on POST. Flask-WTF does it for you. Still the gold standard.',
+            '<strong>SameSite cookies</strong>: <code>SameSite=Lax</code> (the modern default) stops the browser attaching the cookie to cross-<em>site</em> POSTs. That blocks evil.example — but not an attacker on the same site, which is why this demo still works and why tokens still matter.',
+            '<strong>Origin / Referer check</strong>: reject state-changing requests whose <code>Origin</code> header is not your own. Cheap, and a good second layer.',
+            '<strong>Custom header</strong> for JSON APIs: a request with <code>X-Requested-With</code> or <code>Content-Type: application/json</code> cannot be sent by a plain HTML form, and cross-origin JS would hit CORS preflight (Level 2). Fetch-based apps get this nearly for free.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'GET must never change state. <code>&lt;img src="/delete-account"&gt;</code> in an email is a CSRF attack with no form at all, and SameSite=Lax explicitly allows top-level GET navigations.',
+            'Compare tokens with <code>hmac.compare_digest</code>, not <code>==</code>, to avoid timing leaks — this server does.',
+            'A token in a cookie <em>and</em> a form field ("double submit") works without server state, but only if the attacker cannot set cookies on your domain — subdomains break it.',
+            'Logging in itself can be CSRF\'d (login CSRF): an attacker logs you into <em>their</em> account so your later activity lands there. Protect the login form too.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "csrf";</script>
+<script src="{{ url_for('static', filename='js/lab_auth.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "models/_page.html" %}
+{% import "_partials/controls.html" as controls %}
+
+{% block model_content %}
+<div class="runner">
+    <div class="runner__panel">
+        <div class="card">
+            <form id="runnerForm" data-endpoint="{{ spec.url }}/predict"
+                  data-render="{{ spec.render }}" data-input="{{ spec.input }}"
+                  data-busy-label="{{ 'Reading…' if spec.category == 'ocr' else 'Running the model…' }}"
+                  enctype="multipart/form-data">
+
+                {% if spec.input == 'text' %}
+                <div class="field">
+                    <label class="field__label" for="text">Text to analyse</label>
+                    <textarea id="text" name="text" required
+                              placeholder="Type or paste a sentence…"></textarea>
+                </div>
+
+                {% elif spec.input == 'two-images' %}
+                <div class="field">
+                    <span class="field__label">First photo</span>
+                    <label class="dropzone" data-preview-target="inputPreview">
+                        <input type="file" name="image1" accept="image/*" required
+                               aria-label="First photo">
+                        <span class="dropzone__name">Drop a photo or click to choose</span>
+                        <span class="dropzone__hint">JPG, PNG or WebP</span>
+                    </label>
+                </div>
+                <div class="field">
+                    <span class="field__label">Second photo</span>
+                    <label class="dropzone" data-preview-target="outputPreview">
+                        <input type="file" name="image2" accept="image/*" required
+                               aria-label="Second photo">
+                        <span class="dropzone__name">Drop a photo or click to choose</span>
+                        <span class="dropzone__hint">JPG, PNG or WebP</span>
+                    </label>
+                </div>
+
+                {% elif spec.input == 'video' %}
+                <div class="field">
+                    <span class="field__label">Video</span>
+                    <label class="dropzone">
+                        <input type="file" name="video" accept="video/*" required
+                               aria-label="Video file">
+                        <span class="dropzone__name">Drop a video or click to choose</span>
+                        <span class="dropzone__hint">MP4, AVI, MOV or WebM · first 180 frames</span>
+                    </label>
+                </div>
+
+                {% else %}
+                <div class="field">
+                    <span class="field__label">Image</span>
+                    <label class="dropzone">
+                        <input type="file" name="image" accept="image/*" required
+                               aria-label="Image to analyse">
+                        <span class="dropzone__name">Drop an image or click to choose</span>
+                        <span class="dropzone__hint">JPG, PNG, WebP or TIFF</span>
+                    </label>
+                </div>
+                {% endif %}
+
+                {{ controls.render(spec.controls) }}
+
+                <button type="submit" class="btn btn--block">
+                    {%- if spec.category == 'ocr' -%}Read the text
+                    {%- elif spec.category == 'detect' -%}Detect objects
+                    {%- elif spec.category == 'segment' -%}Segment the image
+                    {%- elif spec.input == 'text' -%}Analyse
+                    {%- else -%}Run the model{%- endif -%}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="runner__output">
+        {% if spec.input == 'two-images' %}
+        <div class="preview-pair">
+            <div>
+                <div class="preview-frame" id="inputPreview">
+                    <p class="preview-frame__empty">First photo</p>
+                </div>
+                <p class="preview-caption">First</p>
+            </div>
+            <div>
+                <div class="preview-frame" id="outputPreview">
+                    <p class="preview-frame__empty">Second photo</p>
+                </div>
+                <p class="preview-caption">Second</p>
+            </div>
+        </div>
+
+        {% elif spec.input not in ('text', 'video') %}
+        <div class="preview-pair">
+            <div>
+                <div class="preview-frame" id="inputPreview">
+                    <p class="preview-frame__empty">Your image</p>
+                </div>
+                <p class="preview-caption">Input</p>
+            </div>
+            <div>
+                <div class="preview-frame" id="outputPreview">
+                    <p class="preview-frame__empty">Results appear here</p>
+                </div>
+                <p class="preview-caption">Output</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <h2 class="h3">Result</h2>
+            <div id="result" class="result" role="status" aria-live="polite">
+                <p class="small muted">Run the model to see its output.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block model_scripts %}
+<script src="{{ url_for('static', filename='js/runner.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "lab/_page.html" %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block lab_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">Run the same job twice</h2>
+            <div class="btn-row">
+                <button type="button" class="btn" id="buffered">Buffered response</button>
+                <button type="button" class="btn" id="streamed">Streamed response</button>
+                <button type="button" class="btn btn--secondary" id="both">Both at once</button>
+            </div>
+            <div class="stats" style="margin-top: var(--space-4)" id="stats"></div>
+        </div>
+        <div class="compare" style="grid-template-columns: 1fr 1fr">
+            <div class="compare__card"><div class="card__title"><h3 style="margin:0">Buffered</h3><span class="small muted" id="bufState">idle</span></div><div class="wire" id="bufOut" style="height: 300px"></div></div>
+            <div class="compare__card"><div class="card__title"><h3 style="margin:0">Streamed</h3><span class="small muted" id="strState">idle</span></div><div class="wire" id="strOut" style="height: 300px"></div></div>
+        </div>
+    </div>
+    {% include "lab/_wire_card.html" %}
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Both endpoints do identical work: twenty steps of 200 ms. The buffered one collects everything and sends it in one go at ~4 s. The streamed one writes each record as it is produced — first byte at ~200 ms.',
+            'Total time is the same. What changed is <em>time to first byte</em> and, with it, the user\'s perception: a page that is visibly doing something feels faster than one that is finished sooner but blank until then.',
+            'The client reads <code>response.body.getReader()</code> and splits on newlines. Each line is a complete JSON document (NDJSON) — no framing library needed.'
+        ], 'accent') }}
+        {{ notes.section('How it works underneath', [
+            'HTTP/1.1 uses <code>Transfer-Encoding: chunked</code> when the length is unknown up front: each piece is prefixed with its size, and a zero-length chunk ends the response. HTTP/2 streams natively.',
+            'In Flask, returning a generator wrapped in <code>stream_with_context</code> streams. Any <code>yield</code> becomes a chunk.',
+            'Server-Sent Events (Level 1) are exactly this mechanism with a specific text format and a browser API on top. LLM chat interfaces stream tokens the same way.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Buffering proxies quietly turn streaming back into buffering. nginx needs <code>proxy_buffering off;</code> or the <code>X-Accel-Buffering: no</code> header this endpoint sends. Some PaaS platforms buffer regardless.',
+            'Compression buffers too: gzip accumulates before emitting. Disable it for streamed routes or flush explicitly.',
+            'A streamed response cannot change its status code after the first byte. If step 15 fails, you have already sent <code>200</code> — signal errors inside the stream (an error record) instead.',
+            'Chunks are not messages: a single <code>read()</code> can contain half a line or three lines. Always buffer and split, as this page does.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block lab_scripts %}
+<script>window.LAB_PAGE = "streaming";</script>
+<script src="{{ url_for('static', filename='js/lab_http.js') }}" defer></script>
+{% endblock %}

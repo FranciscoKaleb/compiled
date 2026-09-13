@@ -1,0 +1,27 @@
+<header class="site-header">
+    {% if show_sidebar %}
+    <button type="button" id="sidebarToggle" class="sidebar-toggle"
+            aria-expanded="false" aria-controls="sidebar">
+        <span aria-hidden="true">☰</span>
+        <span class="sr-only">Toggle navigation</span>
+    </button>
+    {% endif %}
+
+    <a class="site-header__brand" href="{{ url_for('main.home') }}">
+        <span class="site-header__mark" aria-hidden="true">C</span>
+        <span>Compiled</span>
+    </a>
+
+    <nav class="site-nav" aria-label="Main">
+        <a href="{{ url_for('main.home') }}"
+           {% if request.path == '/' %}aria-current="page"{% endif %}>Home</a>
+        <a href="{{ url_for('main.models_catalog') }}"
+           {% if request.path.startswith('/models') %}aria-current="page"{% endif %}>Models</a>
+        <a href="{{ url_for('main.tools_catalog') }}"
+           {% if request.path.startswith('/tools') %}aria-current="page"{% endif %}>Tools</a>
+        <a href="{{ url_for('lab.catalog') }}"
+           {% if request.path.startswith('/lab') %}aria-current="page"{% endif %}>Web Lab</a>
+        <button type="button" id="themeToggle" class="btn btn--secondary btn--small"
+                aria-label="Switch theme">☾</button>
+    </nav>
+</header>

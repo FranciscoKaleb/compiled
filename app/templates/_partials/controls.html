@@ -1,0 +1,60 @@
+{# Renders declared controls (registry dicts) so pages need no bespoke markup. #}
+{% macro render(controls) %}
+    {% for c in controls %}
+        {% if c.kind == 'range' %}
+        <div class="field">
+            <label class="field__label" for="{{ c.name }}">{{ c.label }}</label>
+            <div class="range-row">
+                <input type="range" id="{{ c.name }}" name="{{ c.name }}"
+                       min="{{ c.min }}" max="{{ c.max }}" step="{{ c.step }}" value="{{ c.default }}">
+                <output for="{{ c.name }}">{{ c.default }}</output>
+            </div>
+            {% if c.help %}<p class="field__help">{{ c.help }}</p>{% endif %}
+        </div>
+        {% elif c.kind == 'text' %}
+        <div class="field">
+            <label class="field__label" for="{{ c.name }}">{{ c.label }}</label>
+            <input type="text" id="{{ c.name }}" name="{{ c.name }}"
+                   placeholder="{{ c.placeholder | default('') }}"
+                   {% if c.required is not defined or c.required %}required{% endif %}>
+            {% if c.help %}<p class="field__help">{{ c.help }}</p>{% endif %}
+        </div>
+        {% elif c.kind == 'textarea' %}
+        <div class="field">
+            <label class="field__label" for="{{ c.name }}">{{ c.label }}</label>
+            <textarea id="{{ c.name }}" name="{{ c.name }}" rows="{{ c.rows | default(6) }}"
+                      placeholder="{{ c.placeholder | default('') }}"
+                      {% if c.required is not defined or c.required %}required{% endif %}></textarea>
+            {% if c.help %}<p class="field__help">{{ c.help }}</p>{% endif %}
+        </div>
+        {% elif c.kind == 'select' %}
+        <div class="field">
+            <label class="field__label" for="{{ c.name }}">{{ c.label }}</label>
+            <select id="{{ c.name }}" name="{{ c.name }}">
+                {% for value, label in c.options %}
+                <option value="{{ value }}" {% if value == c.default %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% if c.help %}<p class="field__help">{{ c.help }}</p>{% endif %}
+        </div>
+        {% elif c.kind == 'checkbox' %}
+        <div class="field">
+            <label class="check">
+                <input type="checkbox" id="{{ c.name }}" name="{{ c.name }}" value="1" {% if c.default %}checked{% endif %}>
+                <span>{{ c.label }}</span>
+            </label>
+            {% if c.help %}<p class="field__help">{{ c.help }}</p>{% endif %}
+        </div>
+        {% elif c.kind == 'file' %}
+        <div class="field">
+            <span class="field__label">{{ c.label }}</span>
+            <label class="dropzone dropzone--compact" data-no-preview>
+                <input type="file" name="{{ c.name }}" accept="{{ c.accept | default('*/*') }}"
+                       aria-label="{{ c.label }}" {% if c.required is not defined or c.required %}required{% endif %}>
+                <span class="dropzone__name">Choose a file</span>
+                {% if c.help %}<span class="dropzone__hint">{{ c.help }}</span>{% endif %}
+            </label>
+        </div>
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
