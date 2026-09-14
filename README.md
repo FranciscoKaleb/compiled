@@ -4,7 +4,11 @@ A Flask app that serves 27 locally-run machine-learning demos (classification,
 detection, segmentation, OCR, face analysis, tracking) and 43 file tools in six
 groups — PDF, images, video & audio, privacy, documents & text, data & files —
 the kind of utilities that are usually behind a paywall online. A third section,
-the **Web Lab**, is a set of live demos of how browsers and servers talk —
+the **Blockchain** section, has three working chains — a public proof-of-work
+ledger, a permissioned proof-of-authority budget ledger for a consortium of
+agencies, and a UTXO cryptocurrency with Ed25519-signed spends, mining rewards,
+halving and difficulty adjustment — each with an explorer, itemised verification
+and a tamper/double-spend demo. A fourth, the **Web Lab**, is a set of live demos of how browsers and servers talk —
 the fundamentals (request anatomy, the HTTP methods, status codes, headers and
 content negotiation, body encodings), real-time delivery (short polling, long polling, Server-Sent Events, WebSockets,
 side by side), HTTP itself (caching and ETags, compression, range requests,
@@ -53,6 +57,7 @@ app/
   registry.py           the model catalogue (ModelSpec) and shared types
   tools_catalog.py      the tool catalogue: one ToolSpec per tool, grouped by category
   lab_catalog.py        the Web Lab catalogue: one LabSpec per demo, in ladder order
+  chain_catalog.py      the three blockchain types
   config.py             environment-driven settings (paths, DATABASE_URL, thresholds)
   core/                 loader (cached weights), uploads, imaging, storage, errors
   db/                   SQLAlchemy models + face matching
@@ -60,6 +65,8 @@ app/
     main.py             home and catalogue pages, cache controls
     models/             one module per task family; routes generated from the registry
     tools/              one module per tool category (pdf, image, video, documents, data)
+    chain/              core.py (canonical hashing, Merkle, PoW, Ed25519, SQLite store),
+                        ledger.py (public PoW), permissioned.py (PoA, signed budget ledger), coin.py (UTXO coin)
     lab/                realtime.py (poll / long-poll / SSE / WebSocket), http.py (cache, compression,
                         range, streaming, CORS), server.py (jobs, rate limits, idempotency, webhooks, cancellation),
                         auth.py (sessions, hand-rolled HS256 JWT, CSRF, TOTP), oauth.py (client + fake IdP),
@@ -139,6 +146,19 @@ The data-layer demos use a separate SQLite file, `app_files/db/lab.db`, with
 its own SQLAlchemy engine, so they can rewrite rows and schema freely without
 touching the app's real tables. It is created and seeded on first use;
 `GET /lab/api/data/reset` rebuilds it.
+
+## Blockchain
+
+Three chains share one core (`app/blueprints/chain/core.py`): every hash is
+SHA-256 over canonical JSON, transactions are content-addressed, headers commit
+to a Merkle root and the previous hash. They differ in consensus: the public
+ledger and the coin use proof of work (difficulty 1–5, interactive); the
+permissioned ledger uses proof of authority — Ed25519 validator signatures, with
+balances derived by replaying the chain. State lives in `app_files/db/chain.db`
+and every chain has a reset. Old `/blockchain` and `/blockchain2` URLs from the
+previous version redirect here. The permissioned demo accounts are
+`treasury/treasury123`, `dof/dof123`, `deped/deped123`, `doh/doh123`,
+`auditor/audit123`; keys and password hashes are generated on first run.
 
 ## Database
 

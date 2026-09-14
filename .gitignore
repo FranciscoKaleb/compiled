@@ -20,3 +20,6 @@ venv/
 .vscode/
 .idea/
 .DS_Store
+
+# Old snapshot kept for reference while porting the blockchain section
+compiled_copy(for_blockchain)/

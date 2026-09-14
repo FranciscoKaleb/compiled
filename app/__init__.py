@@ -4,6 +4,7 @@ from flask import Flask, redirect
 from app.config import Config
 from app.core import errors, loader
 from app.extensions import db, migrate
+from app.chain_catalog import CHAINS
 from app.lab_catalog import labs_by_group
 from app.registry import (
     CATEGORY_TITLES, MODELS, TOOLS, legacy_redirects, models_by_category,
@@ -23,12 +24,13 @@ def create_app(config_object=Config) -> Flask:
     loader.configure(app.config['MODELS_DIR'])
 
     # Imported for their side effect of registering routes on the blueprints.
-    from app.blueprints import lab, main, models, tools
+    from app.blueprints import chain, lab, main, models, tools
 
     app.register_blueprint(main.bp)
     app.register_blueprint(models.bp)
     app.register_blueprint(tools.bp)
     app.register_blueprint(lab.bp)
+    app.register_blueprint(chain.bp)
     _register_websockets(app)
 
     errors.register(app)
@@ -77,5 +79,6 @@ def _register_template_globals(app: Flask) -> None:
             'categories': models_by_category(),
             'tool_categories': tools_by_category(),
             'lab_groups': labs_by_group(),
+            'chains': CHAINS,
             'category_titles': CATEGORY_TITLES,
         }

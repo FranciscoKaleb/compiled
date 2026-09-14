@@ -432,4 +432,7 @@ def legacy_redirects() -> list[tuple[str, str]]:
         pairs.extend((old, spec.url) for old in spec.legacy)
     for tool in TOOLS:
         pairs.extend((old, tool.url) for old in tool.legacy)
+    pairs += [('/blockchain/view-chain', '/blockchain/ledger'), ('/blockchain2', '/blockchain/permissioned'),
+              ('/blockchain2/login', '/blockchain/permissioned'), ('/blockchain2/authorized-node/dashboard', '/blockchain/permissioned'),
+              ('/blockchain2/node/dashboard', '/blockchain/permissioned')]
     return pairs

@@ -1,0 +1,11 @@
+<nav class="sidebar" id="sidebar" aria-label="Blockchain">
+    <p class="sidebar__title">Blockchain</p>
+    <div class="sidebar__group">
+        <div class="sidebar__items" style="padding-top: var(--space-2)">
+            <a href="{{ url_for('chain.catalog') }}" {% if active == 'catalog' %}aria-current="page"{% endif %}>Overview & comparison</a>
+            {% for c in chains %}
+            <a href="{{ c.url }}" {% if c.slug == active %}aria-current="page"{% endif %}>{{ c.icon }} {{ c.title }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</nav>

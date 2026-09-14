@@ -21,6 +21,8 @@
            {% if request.path.startswith('/tools') %}aria-current="page"{% endif %}>Tools</a>
         <a href="{{ url_for('lab.catalog') }}"
            {% if request.path.startswith('/lab') %}aria-current="page"{% endif %}>Web Lab</a>
+        <a href="{{ url_for('chain.catalog') }}"
+           {% if request.path.startswith('/blockchain') %}aria-current="page"{% endif %}>Blockchain</a>
         <button type="button" id="themeToggle" class="btn btn--secondary btn--small"
                 aria-label="Switch theme">☾</button>
     </nav>

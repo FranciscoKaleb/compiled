@@ -1,0 +1,72 @@
+{% extends "chain/_page.html" %}
+{% block chain_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0"><span class="status-dot" id="userDot"></span>Participant</h2><span class="small muted" id="userState">not signed in</span></div>
+            <div id="loginBox" style="margin-top: var(--space-3)">
+                <div class="preview-pair" style="gap: var(--space-3)">
+                    <div class="field" style="margin:0"><label class="field__label" for="username">Account</label>
+                        <select id="username"><option value="treasury">treasury — super admin, validator</option><option value="dof">dof — budget admin, validator</option><option value="deped" selected>deped — agency</option><option value="doh">doh — agency</option><option value="auditor">auditor — read only</option></select></div>
+                    <div class="field" style="margin:0"><label class="field__label" for="password">Password</label><input type="text" id="password" value="deped123"></div>
+                </div>
+                <button type="button" class="btn btn--block" id="login" style="margin-top: var(--space-3)">Sign in</button>
+                <p class="field__help">Demo passwords are &lt;account&gt;123 (treasury123, dof123, deped123, doh123, audit123). Stored hashed; keys are Ed25519, generated on first run.</p>
+            </div>
+            <div id="userBox" hidden style="margin-top: var(--space-3)">
+                <p><strong id="userName"></strong> · <span id="userRole" class="badge"></span> <span id="userValidator" class="badge badge--muted" hidden>validator</span></p>
+                <button type="button" class="btn btn--secondary btn--small" id="logout">Sign out</button>
+            </div>
+        </div>
+        <div class="card" id="txCard">
+            <h2 class="h3">Submit a signed transaction</h2>
+            <div class="field"><label class="field__label" for="txType">Type</label>
+                <select id="txType"><option value="allocation">allocation — treasury/dof gives budget to an agency</option><option value="transfer" selected>transfer — agency to agency</option><option value="expense">expense — agency pays an outside payee</option></select></div>
+            <div class="preview-pair" style="gap: var(--space-3)">
+                <div class="field" style="margin:0"><label class="field__label" for="receiver">Receiver</label><input type="text" id="receiver" value="doh" list="agencies"><datalist id="agencies"><option value="deped"><option value="doh"></datalist></div>
+                <div class="field" style="margin:0"><label class="field__label" for="amount">Amount (₱)</label><input type="number" id="amount" value="250000" min="0.01" step="0.01"></div>
+            </div>
+            <div class="field" style="margin-top: var(--space-3)"><label class="field__label" for="description">Description</label><input type="text" id="description" value="Joint health & nutrition program"></div>
+            <button type="button" class="btn btn--block" id="submitTx">Sign & submit</button>
+            <div id="txOut" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Pending</h2><span class="badge badge--muted" id="mempoolCount">0</span></div>
+            <div id="mempool" class="block__txs" style="margin-top: var(--space-3)"></div>
+            <div class="btn-row" style="margin-top: var(--space-4)"><button type="button" class="btn" id="propose">✍ Validate & sign a block</button><button type="button" class="btn btn--secondary btn--small" id="reset">Reset</button></div>
+            <div id="proposeOut" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Balances — derived from the chain</h2>
+            <div class="table-wrap"><table class="data"><thead><tr><th>account</th><th>role</th><th>balance</th><th>pending out</th></tr></thead><tbody id="balances"></tbody></table></div>
+            <p class="field__help" style="margin-top: var(--space-3)">Total allocated so far: <strong id="totalAllocated">0</strong>. Click an agency to see its audit trail.</p>
+            <div id="history" style="margin-top: var(--space-3)"></div>
+        </div>
+    </div>
+    <div class="stack">{% include "chain/_explorer_card.html" %}</div>
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Sign in as <strong>deped</strong> and try a transfer: <em>422 — deped has 0.00 available</em>. Budget must exist before it moves. Sign in as <strong>dof</strong>, submit an <em>allocation</em> to deped, then <strong>Validate & sign a block</strong>. Now deped can spend. Sign in as deped again and transfer to doh.',
+            'Every transaction is <strong>signed by its sender</strong> with an Ed25519 key. The chain stores the signature and the public key is on file for every participant, so anyone can check who authorised what — the Activity panel shows the exact message that was signed.',
+            'Blocks have <strong>no nonce and no mining</strong>. A validator (treasury or dof) collects pending transactions, re-validates each against the current balances <em>in order</em> (one that became unaffordable is rejected, not committed), and signs the block hash. Sign in as deped and press Validate: <em>403</em>.',
+            '<strong>Balances are never stored.</strong> They are recomputed by replaying every block, every time. That is why the "pending out" column exists: a spend in the mempool already reduces what you may spend next, even though no balance has changed yet.'
+        ], 'accent') }}
+        {{ notes.section('Proof of authority', [
+            'In a consortium, the participants already know and trust each other\'s <em>identities</em> — a finance department, an education department, an auditor. What they do not trust is each other\'s <em>databases</em>. A shared, signed, append-only log solves that without any mining.',
+            'Consensus is simply "a known validator signed it". Finality is immediate. Throughput is limited only by the validator, and there is no energy cost. The price is that the validator set is a trusted third party in a very real sense — a compromised validator key can write anything.',
+            'Real systems (Hyperledger Fabric, Quorum/Besu with IBFT, most central-bank pilots) rotate validators and require a quorum (e.g. 2 of 3 signatures) per block. This demo uses one signature so the mechanism stays visible.',
+            'The audit role can read everything and write nothing. In a permissioned chain, <em>read</em> access is also controlled — unlike a public chain, where the whole history is public by design.'
+        ]) }}
+        {{ notes.section('What the original got wrong', [
+            'The block hash mixed in <code>datetime.now()</code> <em>at hashing time</em> and only the <em>count</em> of transactions — not their content. Nothing could be verified, and swapping one transaction for another left the hash unchanged.',
+            'Transaction ids were <code>tx_{len(mempool)}</code>: after every block the counter restarted at 0, so new transactions overwrote old ones in the key-value store.',
+            'Budget allocations had no sender, so the state grew an account literally named <code>None</code> with an ever-more-negative balance. Amounts came in as strings from JSON and crashed the arithmetic. No balance check existed, so any agency could spend any amount.',
+            'Creating a block cleared the <em>entire</em> mempool while including only the first five transactions — the rest silently vanished.',
+            'Login read plaintext passwords from a file that was not there. Passwords are now hashed and the demo accounts are generated on first run.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block chain_scripts %}
+<script src="{{ url_for('static', filename='js/chain_permissioned.js') }}" defer></script>
+{% endblock %}

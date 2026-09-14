@@ -1,0 +1,17 @@
+<div class="card">
+    <div class="card__title">
+        <h2 class="h3" style="margin:0"><span class="status-dot" id="validDot"></span>Chain explorer</h2>
+        <span class="small muted" id="chainMeta"></span>
+        <button type="button" class="btn btn--secondary btn--small" id="verify">Verify chain</button>
+    </div>
+    <div id="chainView" class="stack" style="margin-top: var(--space-3); max-height: 520px; overflow-y: auto"></div>
+    <div id="verifyOut" style="margin-top: var(--space-3)"></div>
+</div>
+<div class="card">
+    <div class="card__title">
+        <h2 class="h3" style="margin:0">Activity</h2>
+        <label class="check small"><input type="checkbox" id="pause"> <span>Pause</span></label>
+        <button type="button" class="btn btn--secondary btn--small" id="clearLog">Clear</button>
+    </div>
+    <div class="wire" id="wire" role="log" aria-live="off" style="margin-top: var(--space-3); height: 300px"></div>
+</div>

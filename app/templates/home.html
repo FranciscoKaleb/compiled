@@ -44,6 +44,22 @@
 </section>
 {% endfor %}
 
+<section class="catalog-section">
+    <div class="catalog-section__head">
+        <h2>Blockchain · three kinds of chain</h2>
+        <p>Public ledger, permissioned ledger, cryptocurrency — same hashing, different rules about who writes.</p>
+    </div>
+    <div class="card-grid">
+        {% for c in chains %}
+        <a class="tile" href="{{ c.url }}">
+            <span class="tile__eyebrow">{{ c.icon }} {{ c.subtitle }}</span>
+            <span class="tile__title">{{ c.title }}</span>
+            <span class="tile__blurb">{{ c.blurb }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
 {% for key, title, description, specs in lab_groups %}
 <section class="catalog-section">
     <div class="catalog-section__head">

@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% block title %}Blockchain · Compiled{% endblock %}
+{% block content_class %}content--wide{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_chain.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">Blockchain</span>
+    <h1>Three kinds of chain</h1>
+    <p>A blockchain is an append-only log where each block commits to the one before it by hash. What differs between
+       "blockchains" is <em>who may append</em> and <em>how everyone agrees</em>. These three working chains cover the
+       main answers. Everything runs locally, is persisted in <code>app_files/db/chain.db</code>, and can be reset.</p>
+</div>
+<div class="card-grid" style="margin-bottom: var(--space-6)">
+    {% for c in chains %}
+    <a class="tile" href="{{ c.url }}">
+        <span class="tile__eyebrow">{{ c.icon }} {{ c.subtitle }}</span>
+        <span class="tile__title">{{ c.title }}</span>
+        <span class="tile__blurb">{{ c.blurb }}</span>
+    </a>
+    {% endfor %}
+</div>
+<div class="card">
+    <h2 class="h3">Side by side</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th></th>{% for c in chains %}<th>{{ c.icon }} {{ c.title }}</th>{% endfor %}</tr></thead>
+        <tbody>
+            <tr><td class="key">Consensus</td>{% for c in chains %}<td>{{ c.consensus }}</td>{% endfor %}</tr>
+            <tr><td class="key">Who can write</td>{% for c in chains %}<td>{{ c.who_writes }}</td>{% endfor %}</tr>
+            <tr><td class="key">What you trust</td>{% for c in chains %}<td>{{ c.trust }}</td>{% endfor %}</tr>
+            <tr><td class="key">Identity</td><td>None — free-text names</td><td>Known participants with Ed25519 keys; blocks and transactions signed</td><td>Pseudonymous: an address is a hash of a public key</td></tr>
+            <tr><td class="key">State</td><td>Whatever the records say; no balances enforced</td><td>Budget balances derived by replaying the chain; overdrafts rejected</td><td>Set of unspent outputs; no accounts at all</td></tr>
+            <tr><td class="key">Finality</td><td>Probabilistic — deeper is safer, redoing the work costs</td><td>Immediate — one validator signature</td><td>Probabilistic, plus difficulty adjustment</td></tr>
+            <tr><td class="key">New value</td><td>n/a — it records, it does not mint</td><td>Budget allocations by authorised roles</td><td>Coinbase reward per block, halving every 10 blocks</td></tr>
+            <tr><td class="key">Cost of writing</td><td>Hash puzzle (CPU time)</td><td>Zero — but you must be a validator</td><td>Hash puzzle, rewarded in coin</td></tr>
+            <tr><td class="key">Real-world shape</td><td>Notarisation, timestamping, audit logs</td><td>Consortium ledgers: Hyperledger Fabric, Quorum, central-bank pilots</td><td>Bitcoin</td></tr>
+        </tbody>
+    </table></div>
+</div>
+<div class="card" style="margin-top: var(--space-5)">
+    <h2 class="h3">What all three share (the actual "blockchain" part)</h2>
+    <ul class="note__list">
+        <li>Every hash is SHA-256 over <strong>canonical JSON</strong> (sorted keys, no whitespace) of exactly the fields that define the object. The original code hashed <code>datetime.now()</code> at verification time — so nothing could ever verify. Determinism is the whole game.</li>
+        <li>Transactions are <strong>content-addressed</strong>: the txid <em>is</em> the hash of the transaction. Change a digit and it is a different transaction with a different id.</li>
+        <li>A block header commits to its transactions through a <strong>Merkle root</strong>; each page can show the proof path for a single transaction.</li>
+        <li>Each header includes the <strong>previous block's hash</strong>. Editing block 5 changes its hash, which block 6 committed to, and so on to the tip — which is what "immutable" concretely means.</li>
+        <li>Verification is explicit and itemised: link, header hash, Merkle root, plus the consensus check (proof-of-work target or validator signature) and the rules of that chain (balances, UTXOs, coinbase amount).</li>
+    </ul>
+</div>
+{% endblock %}

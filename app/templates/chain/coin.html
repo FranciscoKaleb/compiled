@@ -1,0 +1,66 @@
+{% extends "chain/_page.html" %}
+{% block chain_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Wallets</h2><span class="small muted" id="supply"></span></div>
+            <div class="table-wrap" style="margin-top: var(--space-3)"><table class="data"><thead><tr><th>label</th><th>address</th><th>balance</th><th></th></tr></thead><tbody id="wallets"></tbody></table></div>
+            <div class="btn-row" style="margin-top: var(--space-3)"><input type="text" id="newLabel" placeholder="new wallet label" style="max-width: 200px"><button type="button" class="btn btn--small" id="newWallet">Create wallet</button></div>
+            <p class="field__help" style="margin-top: var(--space-2)">Custodial demo: the server holds the private keys. Address = "cx" + SHA-256(public key)[:38].</p>
+        </div>
+        <div class="card">
+            <h2 class="h3">⛏ Mine</h2>
+            <div class="field"><label class="field__label" for="miner">Reward goes to</label><select id="miner"></select></div>
+            <div class="btn-row"><button type="button" class="btn" id="mine">Mine the next block</button></div>
+            <p class="field__help" style="margin-top: var(--space-3)" id="mineInfo"></p>
+            <div id="mineOut" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">Send</h2>
+            <div class="preview-pair" style="gap: var(--space-3)">
+                <div class="field" style="margin:0"><label class="field__label" for="from">From</label><select id="from"></select></div>
+                <div class="field" style="margin:0"><label class="field__label" for="to">To</label><select id="to"></select></div>
+            </div>
+            <div class="preview-pair" style="gap: var(--space-3); margin-top: var(--space-3)">
+                <div class="field" style="margin:0"><label class="field__label" for="amount">Amount</label><input type="number" id="amount" value="12.5" step="0.0001" min="0.0001"></div>
+                <div class="field" style="margin:0"><label class="field__label" for="fee">Fee (to the miner)</label><input type="number" id="fee" value="0.1" step="0.01" min="0"></div>
+            </div>
+            <div class="btn-row" style="margin-top: var(--space-3)"><button type="button" class="btn" id="send">Sign & broadcast</button><button type="button" class="btn btn--danger" id="doubleSpend">Try a double spend</button><button type="button" class="btn btn--secondary btn--small" id="reset">Reset</button></div>
+            <div id="sendOut" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Mempool</h2><span class="badge badge--muted" id="mempoolCount">0</span></div>
+            <div id="mempool" class="block__txs" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">Unspent outputs (UTXOs)</h2><span class="small muted" id="utxoMeta"></span></div>
+            <div id="utxos" class="block__txs" style="margin-top: var(--space-3); max-height: 220px; overflow:auto"></div>
+        </div>
+    </div>
+    <div class="stack">{% include "chain/_explorer_card.html" %}</div>
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'Nobody has coins until someone mines. <strong>Mine</strong> to Alice: block #1 contains one <em>coinbase</em> transaction — no inputs, one output of 50 CMP to Alice. Supply is now 50. That is the only way coins are created.',
+            '<strong>Send</strong> 12.5 from Alice to Bob: the wallet picks an unspent output big enough (the 50), signs it, and creates <em>two</em> outputs — 12.5 to Bob and 37.4 back to Alice as <em>change</em>. The missing 0.1 is the fee. Nothing is "deducted" from an account; a coin is destroyed and two are made.',
+            '<strong>Mine</strong> again: the coinbase is now 50 + 0.1. Fees are how miners get paid once the block subsidy runs out. Watch the reward <strong>halve</strong> to 25 at block 10, 12.5 at block 20.',
+            '<strong>Try a double spend</strong>: two perfectly signed transactions that spend the same output. The first is accepted; the second is rejected because the mempool already treats that output as spent. This is the problem Bitcoin exists to solve — without a chain, the second recipient has no way to know.'
+        ], 'accent') }}
+        {{ notes.section('The UTXO model', [
+            'There are no accounts. There is a set of <em>unspent transaction outputs</em>: (txid, index) → (address, amount). Your "balance" is the sum of the outputs your key can unlock — a query, not a stored number. The UTXO panel is the whole state of the system.',
+            'An <strong>address</strong> is a hash of a public key. Until you spend, nobody knows the key; when you spend, the input reveals the public key and a signature, and the verifier checks that hash(key) equals the address that held the coin.',
+            'Every input is signed over the transaction body (inputs referenced + outputs). A miner cannot redirect your payment: changing an output invalidates the signature. It <em>can</em> refuse to include you — which is what the fee is for.',
+            '<strong>Difficulty adjustment</strong>: every 4 blocks the chain compares the average block time to the 1 s target and moves difficulty one step. Mine quickly and it climbs; the note under the Mine button tells you why. Bitcoin does this every 2016 blocks aiming at 10 minutes.'
+        ]) }}
+        {{ notes.section('Gotchas', [
+            'Two coinbase transactions in the same second would have had identical txids and their outputs would have collided in the UTXO set — this demo hit exactly that. The fix (committing the block height into the coinbase) is Bitcoin\'s BIP 34.',
+            'A transaction in the mempool is <em>not</em> final. Until mined, both the sender and a competing miner can replace it. Merchants wait for confirmations — blocks on top — because each one makes rewriting exponentially more expensive.',
+            'Change outputs mean your wallet has many small coins over time; spending later may consume several inputs, each needing a signature. Real wallets consolidate.',
+            'Private keys here live on the server. In a real wallet they never leave the device, and losing them loses the coins — there is no "forgot password".',
+            'Proof of work ties security to energy. Proof-of-stake systems replace the hash puzzle with a deposit that is destroyed for misbehaviour; the data structures above stay the same.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block chain_scripts %}
+<script src="{{ url_for('static', filename='js/chain_coin.js') }}" defer></script>
+{% endblock %}

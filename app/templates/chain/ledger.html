@@ -1,0 +1,67 @@
+{% extends "chain/_page.html" %}
+{% block chain_content %}
+<div class="lab-grid lab-grid--3">
+    <div class="stack">
+        <div class="card">
+            <h2 class="h3">1 · Submit a record</h2>
+            <form id="txForm">
+                <div class="preview-pair" style="gap: var(--space-3)">
+                    <div class="field" style="margin:0"><label class="field__label" for="sender">Sender</label><input type="text" id="sender" value="alice" required></div>
+                    <div class="field" style="margin:0"><label class="field__label" for="receiver">Receiver</label><input type="text" id="receiver" value="bob" required></div>
+                </div>
+                <div class="preview-pair" style="gap: var(--space-3); margin-top: var(--space-3)">
+                    <div class="field" style="margin:0"><label class="field__label" for="amount">Amount</label><input type="number" id="amount" value="10" step="0.01" min="0.01" required></div>
+                    <div class="field" style="margin:0"><label class="field__label" for="txType">Type</label><select id="txType"><option value="transfer">transfer</option><option value="record">record</option><option value="contract">contract</option></select></div>
+                </div>
+                <div class="field" style="margin-top: var(--space-3)"><label class="field__label" for="memo">Memo</label><input type="text" id="memo" placeholder="optional"></div>
+                <button type="submit" class="btn btn--block">Add to mempool</button>
+            </form>
+        </div>
+        <div class="card">
+            <div class="card__title"><h2 class="h3" style="margin:0">2 · Mempool</h2><span class="badge badge--muted" id="mempoolCount">0 pending</span></div>
+            <div id="mempool" class="block__txs" style="margin-top: var(--space-3)"></div>
+            <div class="field" style="margin-top: var(--space-4)"><label class="field__label" for="difficulty">Difficulty (leading zero hex digits)</label>
+                <div class="range-row"><input type="range" id="difficulty" min="1" max="5" step="1" value="3"><output for="difficulty">3</output></div>
+                <p class="field__help" id="diffHelp"></p></div>
+            <div class="btn-row"><button type="button" class="btn" id="mine">⛏ Mine a block (up to 5 tx)</button></div>
+            <div id="mineOut" style="margin-top: var(--space-3)"></div>
+        </div>
+        <div class="card">
+            <h2 class="h3">3 · Attack it</h2>
+            <div class="field"><label class="field__label" for="tamperHeight">Change the first transaction of block…</label>
+                <div class="btn-row" style="align-items:center"><input type="number" id="tamperHeight" value="1" min="1" style="width: 7ch"> <span class="small muted">to amount</span> <input type="number" id="tamperAmount" value="999999" style="width: 11ch"></div></div>
+            <div class="btn-row">
+                <button type="button" class="btn btn--danger" id="tamper">Edit the stored block</button>
+                <button type="button" class="btn btn--secondary" id="remine">Attacker re-mines from there</button>
+                <button type="button" class="btn btn--secondary btn--small" id="reset">Reset chain</button>
+            </div>
+            <div id="attackOut" style="margin-top: var(--space-3)"></div>
+        </div>
+    </div>
+    <div class="stack">{% include "chain/_explorer_card.html" %}</div>
+    <aside class="lab-notes"><div class="note-columns">
+        {{ notes.section('What you are seeing', [
+            'A <strong>transaction</strong> is just a record; its id is the SHA-256 of its canonical JSON. Submit the same record twice within a second and the second is refused as a duplicate — the id says they are the same thing.',
+            '<strong>Mining</strong> takes pending records, computes their Merkle root, and searches for a <code>nonce</code> that makes the header hash start with N zeros. The explorer shows attempts and time; each extra digit of difficulty multiplies both by 16. Difficulty 5 takes a few seconds — that is the point.',
+            '<strong>Edit the stored block</strong> changes one amount in the database, exactly as a compromised server would. Press Verify: that block fails on <code>merkle_root</code> and <code>tx_ids</code>, because its header still commits to the old content. The blocks after it are untouched — but they now sit on top of a lie.',
+            '<strong>Attacker re-mines</strong> does the only thing that can hide the edit: recompute the root and redo the proof-of-work for that block <em>and every block after it</em>. It succeeds here in well under a second because you are the only miner. On a real network the honest majority kept extending the chain the whole time, and the attacker\'s rewritten branch is shorter — so it loses.'
+        ], 'accent') }}
+        {{ notes.section('The pieces', [
+            '<strong>Merkle root</strong>: hash the transactions in pairs, then the pairs, up to one hash. The header commits to that one hash, so it commits to every transaction. The block API returns a <em>proof</em> per transaction: the handful of sibling hashes needed to recompute the root — how a light client checks one payment without downloading the block.',
+            '<strong>Proof of work</strong>: the only way to find a valid nonce is to try nonces. Work is therefore <em>measurable</em> (attempts) and <em>unforgeable</em> (you cannot fake having done it). Bitcoin\'s difficulty is ~19 leading zero hex digits; a block is 10 minutes of the whole network\'s hashing.',
+            '<strong>Chain of hashes</strong>: block N includes hash(N−1). Changing anything in N−1 changes its hash, so N\'s <code>link</code> check fails — unless N is re-mined too, and then N+1, and so on to the tip. Depth is security.',
+            'This chain has no notion of balance or ownership. It is a <em>ledger</em> in the accounting sense: an ordered, tamper-evident record. Anyone can write "alice pays bob 1,000,000" — the chain only guarantees that the entry, once mined, cannot be quietly changed or reordered.'
+        ]) }}
+        {{ notes.section('What the original got wrong', [
+            'Transaction ids came from <code>time.time()</code>, not content — two different records could share an id and the same record got a new id every submit.',
+            '<code>verify_chain</code> checked the header hash and the link but never the Merkle root or the proof-of-work target, so editing a transaction or skipping the mining went undetected.',
+            'The mempool lived only in memory and vanished on restart; the chain file was rewritten whole on every block; errors on load were swallowed with a bare <code>except: pass</code>.',
+            'Nothing was validated: negative amounts, empty names, arbitrary types. Now every input is checked and the mempool is capped.',
+            'A module-level singleton opened files at import time. Storage is now a shared SQLite store, opened on first use, safe across threads.'
+        ], 'warn') }}
+    </div></aside>
+</div>
+{% endblock %}
+{% block chain_scripts %}
+<script src="{{ url_for('static', filename='js/chain_ledger.js') }}" defer></script>
+{% endblock %}

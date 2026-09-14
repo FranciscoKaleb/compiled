@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% set show_sidebar = true %}
+{% import "_partials/lab_notes.html" as notes %}
+{% block title %}{{ spec.title }} · Blockchain{% endblock %}
+{% block content_class %}content--full{% endblock %}
+{% block sidebar %}{% include "_partials/sidebar_chain.html" %}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <span class="page-head__eyebrow">{{ spec.icon }} {{ spec.subtitle }}</span>
+    <h1>{{ spec.title }}</h1>
+    <p>{{ spec.blurb }}</p>
+</div>
+{% block chain_content %}{% endblock %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/lab.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chain_common.js') }}" defer></script>
+{% block chain_scripts %}{% endblock %}
+{% endblock %}
